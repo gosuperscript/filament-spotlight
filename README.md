@@ -2,13 +2,23 @@
 
 A ⌘K command menu for [Filament 5](https://filamentphp.com) panels — search and quick actions, built on [cmdk](https://github.com/pacocoursey/cmdk) with a fluent, hookable PHP API.
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="art/spotlight-dark.png">
+  <img alt="The Spotlight command menu open over a Filament panel, showing custom commands and the panel's navigation" src="art/spotlight-light.png">
+</picture>
+
 - **Command menu** opened with <kbd>⌘K</kbd> / <kbd>Ctrl+K</kbd>, with fuzzy matching, keyboard navigation, and grouped results.
 - **Navigation index**: every page and resource in your panel is instantly searchable, respecting visibility and authorization.
 - **Global search**: records from your resources' [global search](https://filamentphp.com/docs/panels/resources/global-search) appear while you type.
 - **Custom commands**: register actions with a fluent API — navigate to URLs, dispatch Livewire events, or run server-side closures.
 - **Hookable**: pages, resources, plugins, and packages can all contribute commands.
 
-The UI ships as a self-contained React island (react + cmdk bundled, ~64 KB gzipped, loaded once and cached). Your app needs **no Node build step** and no theme changes. All command definitions, search, and authorization stay server-side — the browser only ever sees display payloads and command IDs.
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="art/spotlight-search-dark.png">
+  <img alt="Searching in the Spotlight command menu, mixing matching commands with global search records" src="art/spotlight-search-light.png">
+</picture>
+
+The UI ships as a self-contained React island (react + cmdk bundled, ~28 KB gzipped, loaded once and cached). Your app needs **no Node build step** and no theme changes. All command definitions, search, and authorization stay server-side — the browser only ever sees display payloads and command IDs.
 
 ## Requirements
 
@@ -195,6 +205,22 @@ composer format        # Pint
 ```
 
 `dist/` is committed so installing apps never need Node.
+
+### Demo app & screenshots
+
+`workbench/` contains a demo panel (see `testbench.yaml`) used to generate the README screenshots. Run it with:
+
+```bash
+vendor/bin/testbench workbench:build   # migrate + seed + publish assets
+vendor/bin/testbench serve             # demo panel on http://127.0.0.1:8000/admin
+```
+
+It logs in automatically via `/_workbench` (demo@example.com / password). To regenerate the screenshots in `art/`:
+
+```bash
+npx playwright install chromium        # once
+npm run screenshots
+```
 
 ## License
 

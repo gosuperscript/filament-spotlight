@@ -35,7 +35,9 @@
     },
     "autoload-dev": {
         "psr-4": {
-            "Superscript\\FilamentSpotlight\\Tests\\": "tests/"
+            "Superscript\\FilamentSpotlight\\Tests\\": "tests/",
+            "Workbench\\App\\": "workbench/app/",
+            "Workbench\\Database\\Seeders\\": "workbench/database/seeders/"
         }
     },
     "scripts": {

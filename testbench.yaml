@@ -1,0 +1,44 @@
+# Configuration for the workbench demo app (`vendor/bin/testbench serve`),
+# used to generate the README screenshots (`npm run screenshots`).
+
+providers:
+  # Mirrors composer's package discovery order (filament/* sorts before
+  # livewire/livewire): Filament's SupportServiceProvider must register
+  # before Livewire — see tests/TestCase.php for the full story.
+  - Filament\Actions\ActionsServiceProvider
+  - RyanChandler\BladeCaptureDirective\BladeCaptureDirectiveServiceProvider
+  - BladeUI\Heroicons\BladeHeroiconsServiceProvider
+  - BladeUI\Icons\BladeIconsServiceProvider
+  - Filament\FilamentServiceProvider
+  - Filament\Forms\FormsServiceProvider
+  - Filament\Infolists\InfolistsServiceProvider
+  - Filament\Notifications\NotificationsServiceProvider
+  - Filament\QueryBuilder\QueryBuilderServiceProvider
+  - Filament\Schemas\SchemasServiceProvider
+  - Filament\Support\SupportServiceProvider
+  - Filament\Tables\TablesServiceProvider
+  - Filament\Widgets\WidgetsServiceProvider
+  - Livewire\LivewireServiceProvider
+  - Superscript\FilamentSpotlight\SpotlightServiceProvider
+  - Workbench\App\Providers\AdminPanelProvider
+
+seeders:
+  - Workbench\Database\Seeders\DatabaseSeeder
+
+env:
+  - APP_KEY="base64:1FR9fgughjf6Xbl+12XSIOsDggdx3GShRe2x+r/DW5U="
+  - APP_DEBUG=(true)
+  - DB_CONNECTION=sqlite
+  - SESSION_DRIVER=file
+  - CACHE_STORE=file
+  - QUEUE_CONNECTION=sync
+
+workbench:
+  start: '/admin'
+  user: demo@example.com
+  guard: web
+  install: true
+  build:
+    - create-sqlite-db
+    - migrate:fresh
+    - filament:assets
