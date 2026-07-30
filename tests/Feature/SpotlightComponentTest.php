@@ -9,6 +9,7 @@ use Superscript\FilamentSpotlight\Commands\Command;
 use Superscript\FilamentSpotlight\Livewire\Spotlight;
 use Superscript\FilamentSpotlight\SpotlightPlugin;
 use Superscript\FilamentSpotlight\Tests\Fixtures\RecentDocumentsProvider;
+use Superscript\FilamentSpotlight\Tests\Fixtures\Resources\UserResource;
 use Superscript\FilamentSpotlight\Tests\Fixtures\User;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -76,6 +77,25 @@ it('ships only visible and authorized keybound commands with the client config',
         'config',
         fn (array $config): bool => collect($config['keybindingItems'])->pluck('id')->all() === ['assign'],
     );
+});
+
+it('offers contextual keybound commands for the page the client reports', function () {
+    $record = makeUser(['name' => 'Jane Cooper']);
+
+    $payloads = spotlight()->getKeybindingCommands(UserResource::getUrl('edit', ['record' => $record]));
+
+    $greet = collect($payloads)->firstWhere('id', "users:{$record->getKey()}:greet");
+
+    expect($greet)->not->toBeNull()
+        ->and($greet['keybinding'])->toBe('g g')
+        ->and(collect($payloads)->pluck('id'))->not->toContain("users:{$record->getKey()}:concealed");
+});
+
+it('offers no contextual keybound commands without a reported page', function () {
+    $record = makeUser(['name' => 'Jane Cooper']);
+
+    expect(collect(spotlight()->getKeybindingCommands(null))->pluck('id'))
+        ->not->toContain("users:{$record->getKey()}:greet");
 });
 
 it('excludes hidden and unauthorized commands from static payloads', function () {

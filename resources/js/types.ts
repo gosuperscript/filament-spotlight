@@ -46,6 +46,7 @@ export type SpotlightConfig = {
 
 export type Bridge = {
     getStaticCommands: (url: string) => Promise<StaticCommandsPayload>
+    getKeybindingCommands: (url: string) => Promise<CommandItem[]>
     search: (query: string, url: string | null) => Promise<CommandItem[]>
     execute: (id: string, context: { query: string; url: string }) => Promise<{ redirect?: string } | null>
 }

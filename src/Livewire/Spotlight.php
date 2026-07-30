@@ -163,7 +163,7 @@ class Spotlight extends Component
 
         return [
             'keybindings' => $plugin->getKeybindings(),
-            'keybindingItems' => $this->getKeybindingItems($plugin, $panel),
+            'keybindingItems' => $this->getKeybindingItems($plugin, $panel, $this->resolvePageContext(request()->fullUrl(), $panel)),
             'placeholder' => $plugin->getPlaceholder(),
             'spaEnabled' => $panel->hasSpaMode(),
             'groups' => $groups,
@@ -175,6 +175,21 @@ class Spotlight extends Component
     }
 
     /**
+     * Refresh the keybound command payloads for the page the client reports
+     * being on. Full page loads get them with the initial config; SPA
+     * navigation calls this so contextual shortcuts follow the page.
+     *
+     * @return array<array<string, mixed>>
+     */
+    #[Renderless]
+    public function getKeybindingCommands(?string $url = null): array
+    {
+        $panel = $this->getPanel();
+
+        return $this->getKeybindingItems($this->getPlugin(), $panel, $this->resolvePageContext($url, $panel));
+    }
+
+    /**
      * Full payloads for keybound commands, shipped with the page so their
      * shortcuts work before the menu has ever been opened. Filtering on the
      * keybinding first keeps visibility/authorization closures (which may hit
@@ -183,10 +198,10 @@ class Spotlight extends Component
      *
      * @return array<array<string, mixed>>
      */
-    protected function getKeybindingItems(SpotlightPlugin $plugin, Panel $panel): array
+    protected function getKeybindingItems(SpotlightPlugin $plugin, Panel $panel, ?PageContext $pageContext = null): array
     {
         $commands = array_filter(
-            $plugin->buildContributedRegistry($panel)->all(),
+            $plugin->buildContributedRegistry($panel, $pageContext)->all(),
             fn (Command $command): bool => $command->getKeybinding() !== null,
         );
 
