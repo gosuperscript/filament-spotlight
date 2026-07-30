@@ -1,0 +1,62 @@
+{
+    "name": "superscript/filament-spotlight",
+    "description": "A Cmd+K command menu for Filament panels: search and quick actions with a fluent, hookable API.",
+    "keywords": [
+        "laravel",
+        "filament",
+        "spotlight",
+        "command-menu",
+        "command-palette",
+        "cmdk"
+    ],
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Erik Gaal",
+            "email": "erik.gaal@gosuperscript.com"
+        }
+    ],
+    "require": {
+        "php": "^8.3",
+        "filament/filament": "^4.11 || ^5.0",
+        "spatie/laravel-package-tools": "^1.16"
+    },
+    "require-dev": {
+        "larastan/larastan": "^3.0",
+        "laravel/pint": "^1.14",
+        "orchestra/testbench": "^10.0",
+        "pestphp/pest": "^3.0|^4.0",
+        "pestphp/pest-plugin-laravel": "^3.0|^4.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Superscript\\FilamentSpotlight\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Superscript\\FilamentSpotlight\\Tests\\": "tests/"
+        }
+    },
+    "scripts": {
+        "test": "vendor/bin/pest",
+        "analyse": "vendor/bin/phpstan analyse",
+        "format": "vendor/bin/pint"
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Superscript\\FilamentSpotlight\\SpotlightServiceProvider"
+            ]
+        }
+    },
+    "config": {
+        "sort-packages": true,
+        "allow-plugins": {
+            "pestphp/pest-plugin": true,
+            "phpstan/extension-installer": true
+        }
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}

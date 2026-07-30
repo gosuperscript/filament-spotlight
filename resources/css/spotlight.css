@@ -1,0 +1,192 @@
+/*
+ * Styles for the cmdk-based command menu. Everything is keyed to Filament's
+ * CSS custom properties (--gray-*, --primary-*), so the menu follows the
+ * panel's theme — including custom brand colors — with dark mode handled
+ * through `.dark` overrides. The dialog portals to <body>, which sits inside
+ * `html.dark`, so both keep working there.
+ */
+
+.fi-spotlight-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 120;
+    background-color: rgb(0 0 0 / 0.5);
+    animation: fi-spotlight-fade-in 150ms ease;
+}
+
+.fi-spotlight {
+    position: fixed;
+    z-index: 121;
+    top: 16vh;
+    left: 50%;
+    transform: translateX(-50%);
+    width: min(40rem, calc(100vw - 2rem));
+    overflow: hidden;
+    border-radius: 0.75rem;
+    background-color: white;
+    box-shadow:
+        0 25px 50px -12px rgb(0 0 0 / 0.25),
+        0 0 0 1px rgb(0 0 0 / 0.05);
+    animation: fi-spotlight-zoom-in 150ms ease;
+}
+
+.dark .fi-spotlight {
+    background-color: var(--gray-900);
+    box-shadow:
+        0 25px 50px -12px rgb(0 0 0 / 0.5),
+        0 0 0 1px rgb(255 255 255 / 0.1);
+}
+
+.fi-spotlight [cmdk-input] {
+    width: 100%;
+    border: none;
+    border-bottom: 1px solid var(--gray-200);
+    background: transparent;
+    padding: 1rem 1.25rem;
+    font-size: 1rem;
+    line-height: 1.5rem;
+    color: var(--gray-950);
+    outline: none;
+}
+
+.fi-spotlight [cmdk-input]::placeholder {
+    color: var(--gray-400);
+}
+
+.dark .fi-spotlight [cmdk-input] {
+    border-bottom-color: var(--gray-700);
+    color: white;
+}
+
+.dark .fi-spotlight [cmdk-input]::placeholder {
+    color: var(--gray-500);
+}
+
+.fi-spotlight [cmdk-list] {
+    max-height: min(24rem, 50vh);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scroll-padding-block: 0.5rem;
+    padding: 0.5rem;
+}
+
+.fi-spotlight [cmdk-group-heading] {
+    padding: 0.5rem 0.75rem 0.25rem;
+    font-size: 0.75rem;
+    line-height: 1rem;
+    font-weight: 500;
+    color: var(--gray-500);
+}
+
+.dark .fi-spotlight [cmdk-group-heading] {
+    color: var(--gray-400);
+}
+
+.fi-spotlight [cmdk-item] {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    border-radius: 0.5rem;
+    padding: 0.625rem 0.75rem;
+    cursor: pointer;
+    color: var(--gray-700);
+    user-select: none;
+}
+
+.fi-spotlight [cmdk-item][data-selected='true'] {
+    background-color: var(--gray-100);
+    color: var(--gray-950);
+}
+
+.dark .fi-spotlight [cmdk-item] {
+    color: var(--gray-300);
+}
+
+.dark .fi-spotlight [cmdk-item][data-selected='true'] {
+    background-color: var(--gray-800);
+    color: white;
+}
+
+.fi-spotlight [cmdk-item][data-disabled='true'] {
+    cursor: default;
+    opacity: 0.5;
+}
+
+.fi-spotlight-item-icon {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    width: 1.25rem;
+    height: 1.25rem;
+    color: var(--gray-400);
+}
+
+.fi-spotlight [cmdk-item][data-selected='true'] .fi-spotlight-item-icon {
+    color: var(--primary-600);
+}
+
+.dark .fi-spotlight [cmdk-item][data-selected='true'] .fi-spotlight-item-icon {
+    color: var(--primary-400);
+}
+
+.fi-spotlight-item-icon svg {
+    width: 1.25rem;
+    height: 1.25rem;
+}
+
+.fi-spotlight-item-text {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+}
+
+.fi-spotlight-item-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+}
+
+.fi-spotlight-item-description {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 0.75rem;
+    line-height: 1rem;
+    color: var(--gray-500);
+}
+
+.dark .fi-spotlight-item-description {
+    color: var(--gray-400);
+}
+
+.fi-spotlight [cmdk-empty],
+.fi-spotlight [cmdk-loading] {
+    padding: 1.5rem 0.75rem;
+    text-align: center;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    color: var(--gray-500);
+}
+
+@keyframes fi-spotlight-fade-in {
+    from {
+        opacity: 0;
+    }
+}
+
+@keyframes fi-spotlight-zoom-in {
+    from {
+        opacity: 0;
+        transform: translateX(-50%) scale(0.98);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .fi-spotlight-overlay,
+    .fi-spotlight {
+        animation: none;
+    }
+}
