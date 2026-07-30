@@ -159,7 +159,7 @@ class Settings extends Page implements HasSpotlightCommands
 
 ## Contextual commands
 
-Linear-style context awareness: commands scoped to the page the user is currently on are pinned to the top of the menu, under a chip showing the context — "User · Jane Cooper" on a record page, "Users" on the list. Pressing <kbd>⌫</kbd> on an empty query (or clicking the chip's dismiss button) steps out of the context, leaving just the global commands; reopening the menu steps back in.
+Linear-style context awareness: commands scoped to the page the user is currently on are pinned to the top of the menu, under a chip showing the context — "User · Jane Cooper" on a record page, "Users" on the list. Pressing <kbd>⌫</kbd> on an empty query steps out of the context, leaving just the global commands; reopening the menu steps back in.
 
 Implement `HasContextualSpotlightCommands` on a page or resource — it is only consulted while the user is there, and receives a `PageContext` with the current `page`, `resource`, and (on record pages) the resolved `record`:
 

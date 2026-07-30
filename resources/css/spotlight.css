@@ -79,29 +79,6 @@
     white-space: nowrap;
 }
 
-.fi-spotlight-context-chip button {
-    display: inline-flex;
-    align-items: center;
-    border: none;
-    background: none;
-    padding: 0;
-    cursor: pointer;
-    color: var(--gray-400);
-}
-
-.fi-spotlight-context-chip button:hover {
-    color: var(--gray-600);
-}
-
-.dark .fi-spotlight-context-chip button:hover {
-    color: var(--gray-300);
-}
-
-.fi-spotlight-context-chip svg {
-    width: 1rem;
-    height: 1rem;
-}
-
 .fi-spotlight [cmdk-input] {
     width: 100%;
     border: none;
