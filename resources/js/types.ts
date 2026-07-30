@@ -41,6 +41,7 @@ export type SpotlightConfig = {
     i18n: {
         empty: string
         loading: string
+        then: string
     }
 }
 

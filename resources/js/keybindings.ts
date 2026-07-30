@@ -122,12 +122,13 @@ const KEY_LABELS: Record<string, string> = {
 }
 
 /**
- * Format a binding as display chips, one per key: 'mod+shift+m' becomes
- * ['⌘', '⇧', 'M'] on macOS and ['Ctrl', 'Shift', 'M'] elsewhere. Chord
- * steps flatten into consecutive chips: 'g a' becomes ['G', 'A'].
+ * Format a binding as display chips grouped per chord step: 'mod+shift+m'
+ * becomes [['⌘', '⇧', 'M']] on macOS and [['Ctrl', 'Shift', 'M']]
+ * elsewhere, while the chord 'g a' becomes [['G'], ['A']] — rendered as
+ * "G then A".
  */
-export function formatKeybinding(binding: string): string[] {
-    return splitKeybinding(binding).flatMap(formatCombo)
+export function formatKeybinding(binding: string): string[][] {
+    return splitKeybinding(binding).map(formatCombo)
 }
 
 function formatCombo(combo: string): string[] {

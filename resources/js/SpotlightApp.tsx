@@ -1,5 +1,5 @@
 import { Command } from 'cmdk'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import {
     formatKeybinding,
@@ -328,37 +328,37 @@ export function SpotlightApp({ config, bridge }: Props) {
                 so responses arriving never push the list around. */}
             <Command.List>
                 {grouped.contextualUngrouped.map((item) => (
-                    <Item key={item.id} item={item} onSelect={() => runItem(item)} />
+                    <Item key={item.id} item={item} then={config.i18n.then} onSelect={() => runItem(item)} />
                 ))}
 
                 {grouped.contextualGroups.map((group) => (
                     <Command.Group key={group.key} heading={group.label}>
                         {group.items.map((item) => (
-                            <Item key={item.id} item={item} onSelect={() => runItem(item)} />
+                            <Item key={item.id} item={item} then={config.i18n.then} onSelect={() => runItem(item)} />
                         ))}
                     </Command.Group>
                 ))}
 
                 {grouped.ungrouped.map((item) => (
-                    <Item key={item.id} item={item} onSelect={() => runItem(item)} />
+                    <Item key={item.id} item={item} then={config.i18n.then} onSelect={() => runItem(item)} />
                 ))}
 
                 {grouped.groups.map((group) => (
                     <Command.Group key={group.key} heading={group.label}>
                         {group.items.map((item) => (
-                            <Item key={item.id} item={item} onSelect={() => runItem(item)} />
+                            <Item key={item.id} item={item} then={config.i18n.then} onSelect={() => runItem(item)} />
                         ))}
                     </Command.Group>
                 ))}
 
                 {grouped.dynamicUngrouped.map((item) => (
-                    <Item key={item.id} item={item} onSelect={() => runItem(item)} />
+                    <Item key={item.id} item={item} then={config.i18n.then} onSelect={() => runItem(item)} />
                 ))}
 
                 {grouped.dynamicGroups.map((group) => (
                     <Command.Group key={group.key} heading={group.label}>
                         {group.items.map((item) => (
-                            <Item key={item.id} item={item} onSelect={() => runItem(item)} />
+                            <Item key={item.id} item={item} then={config.i18n.then} onSelect={() => runItem(item)} />
                         ))}
                     </Command.Group>
                 ))}
@@ -373,7 +373,7 @@ export function SpotlightApp({ config, bridge }: Props) {
     )
 }
 
-function Item({ item, onSelect }: { item: CommandItem; onSelect: () => void }) {
+function Item({ item, then, onSelect }: { item: CommandItem; then: string; onSelect: () => void }) {
     return (
         <Command.Item value={item.id} onSelect={onSelect}>
             <span
@@ -392,8 +392,15 @@ function Item({ item, onSelect }: { item: CommandItem; onSelect: () => void }) {
 
             {item.keybinding && (
                 <span className="fi-spotlight-item-keybinding" aria-hidden="true">
-                    {formatKeybinding(item.keybinding).map((key, index) => (
-                        <kbd key={index}>{key}</kbd>
+                    {formatKeybinding(item.keybinding).map((step, stepIndex) => (
+                        <Fragment key={stepIndex}>
+                            {stepIndex > 0 && (
+                                <span className="fi-spotlight-item-keybinding-then">{then}</span>
+                            )}
+                            {step.map((key, index) => (
+                                <kbd key={index}>{key}</kbd>
+                            ))}
+                        </Fragment>
                     ))}
                 </span>
             )}

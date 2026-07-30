@@ -170,6 +170,7 @@ class Spotlight extends Component
             'i18n' => [
                 'empty' => __('filament-spotlight::spotlight.empty'),
                 'loading' => __('filament-spotlight::spotlight.loading'),
+                'then' => __('filament-spotlight::spotlight.then'),
             ],
         ];
     }

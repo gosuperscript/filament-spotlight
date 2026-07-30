@@ -234,6 +234,15 @@
     color: var(--gray-400);
 }
 
+.fi-spotlight-item-keybinding-then {
+    font-size: 0.6875rem;
+    color: var(--gray-400);
+}
+
+.dark .fi-spotlight-item-keybinding-then {
+    color: var(--gray-500);
+}
+
 .fi-spotlight [cmdk-empty],
 .fi-spotlight [cmdk-loading] {
     padding: 1.5rem 0.75rem;

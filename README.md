@@ -123,7 +123,7 @@ Command::make('go-to-inbox')
     ->url(...),
 ```
 
-The shortcut renders as chips on the item (<kbd>⌘</kbd> <kbd>⇧</kbd> <kbd>M</kbd> on macOS, <kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>M</kbd> elsewhere; <kbd>G</kbd> <kbd>I</kbd> for the chord) and runs the command directly:
+The shortcut renders as chips on the item (<kbd>⌘</kbd> <kbd>⇧</kbd> <kbd>M</kbd> on macOS, <kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>M</kbd> elsewhere; <kbd>G</kbd> then <kbd>I</kbd> for the chord) and runs the command directly:
 
 - **While the menu is closed**, shortcuts work anywhere in the panel. Shortcuts without a modifier (like `a` or `g i`) are suppressed while a text field is focused, so they never steal keystrokes.
 - **While the menu is open**, single-step shortcuts with a modifier still fire; plain keys and chords type into the search input instead.
