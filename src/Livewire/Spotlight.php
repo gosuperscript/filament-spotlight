@@ -38,18 +38,26 @@ class Spotlight extends Component
      * The full static command index for the current user, fetched when the
      * menu first opens on a page and filtered client-side. The URL is where
      * the client says it is — used to offer page/record commands, while
-     * execution always re-checks visibility and authorization.
+     * execution always re-checks visibility and authorization. The context
+     * chip is only sent when it actually scopes something.
      *
-     * @return array<array<string, mixed>>
+     * @return array{context: array{badge: string | null, label: string} | null, commands: array<array<string, mixed>>}
      */
     #[Renderless]
     public function getStaticCommands(?string $url = null): array
     {
         $panel = $this->getPanel();
+        $plugin = $this->getPlugin();
+        $pageContext = $this->resolvePageContext($url, $panel);
 
-        $registry = $this->getPlugin()->buildStaticRegistry($panel, $this->resolvePageContext($url, $panel));
+        $commands = array_map(CommandPayload::fromCommand(...), $plugin->buildStaticRegistry($panel, $pageContext)->visible());
 
-        return array_map(CommandPayload::fromCommand(...), $registry->visible());
+        $hasContextualCommands = array_filter($commands, fn (array $command): bool => (bool) $command['contextual']) !== [];
+
+        return [
+            'context' => $pageContext !== null && $hasContextualCommands ? $plugin->getContextChip($pageContext) : null,
+            'commands' => $commands,
+        ];
     }
 
     /**
@@ -162,6 +170,7 @@ class Spotlight extends Component
             'i18n' => [
                 'empty' => __('filament-spotlight::spotlight.empty'),
                 'loading' => __('filament-spotlight::spotlight.loading'),
+                'removeContext' => __('filament-spotlight::spotlight.remove_context'),
             ],
         ];
     }

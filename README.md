@@ -159,7 +159,9 @@ class Settings extends Page implements HasSpotlightCommands
 
 ## Contextual commands
 
-Linear-style context awareness: commands scoped to the page the user is currently on are pinned to the top of the menu. Implement `HasContextualSpotlightCommands` on a page or resource — it is only consulted while the user is there, and receives a `PageContext` with the current `page`, `resource`, and (on record pages) the resolved `record`:
+Linear-style context awareness: commands scoped to the page the user is currently on are pinned to the top of the menu, under a chip showing the context — "User · Jane Cooper" on a record page, "Users" on the list. Pressing <kbd>⌫</kbd> on an empty query (or clicking the chip's dismiss button) steps out of the context, leaving just the global commands; reopening the menu steps back in.
+
+Implement `HasContextualSpotlightCommands` on a page or resource — it is only consulted while the user is there, and receives a `PageContext` with the current `page`, `resource`, and (on record pages) the resolved `record`:
 
 ```php
 use Superscript\FilamentSpotlight\Commands\Command;
@@ -196,7 +198,7 @@ class UserResource extends Resource implements HasContextualSpotlightCommands
   <img alt="The command menu on a record's edit page, with commands for that record pinned to the top under the record's title" src="art/spotlight-context-light.png">
 </picture>
 
-Contextual commands are grouped under the record's title when there is one, otherwise the resource's or page's label; set an explicit `->group()` to override. Any other command can be pinned into the contextual section with `->contextual()`.
+Contextual commands render ungrouped at the top — the chip carries the context — unless they set an explicit `->group()`. Any other command can be pinned into the contextual section with `->contextual()`.
 
 The client reports its current URL when the menu opens; the server resolves it through the router. The page must belong to the panel, and records resolve through the resource's scoped Eloquent query, so tenancy and query scoping apply. Like provider commands, contextual command names must be **deterministic** (include the record key): the command is re-materialized from the same URL on execute, and visibility/authorization are re-checked before anything runs — make those checks record-aware where it matters, as in `->authorize('update', $user)` above.
 

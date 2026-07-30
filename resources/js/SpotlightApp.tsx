@@ -8,7 +8,7 @@ import {
     matchesKeybinding,
 } from './keybindings'
 import { groupItems, rankStaticItems } from './ranking'
-import type { Bridge, CommandItem, SpotlightConfig } from './types'
+import type { Bridge, CommandItem, ContextChip, SpotlightConfig } from './types'
 
 const SEARCH_DEBOUNCE_MS = 250
 
@@ -23,6 +23,10 @@ export function SpotlightApp({ config, bridge }: Props) {
     const [staticItems, setStaticItems] = useState<CommandItem[] | null>(null)
     const [dynamicItems, setDynamicItems] = useState<CommandItem[]>([])
     const [loading, setLoading] = useState(false)
+    const [context, setContext] = useState<ContextChip | null>(null)
+    // Backspace on an empty query steps out of the context, Linear-style;
+    // reopening the menu steps back in.
+    const [contextActive, setContextActive] = useState(true)
 
     const staticStale = useRef(false)
     const requestSeq = useRef(0)
@@ -63,6 +67,7 @@ export function SpotlightApp({ config, bridge }: Props) {
             setQuery('')
             setDynamicItems([])
             setLoading(false)
+            setContextActive(true)
             return
         }
 
@@ -70,8 +75,14 @@ export function SpotlightApp({ config, bridge }: Props) {
             staticStale.current = false
             bridge
                 .getStaticCommands(window.location.href)
-                .then(setStaticItems)
-                .catch(() => setStaticItems([]))
+                .then((payload) => {
+                    setStaticItems(payload.commands)
+                    setContext(payload.context)
+                })
+                .catch(() => {
+                    setStaticItems([])
+                    setContext(null)
+                })
         }
     }, [open])
 
@@ -91,7 +102,7 @@ export function SpotlightApp({ config, bridge }: Props) {
 
         const timeout = setTimeout(() => {
             bridge
-                .search(trimmed, window.location.href)
+                .search(trimmed, contextActive ? window.location.href : null)
                 .then((items) => {
                     // Livewire promises cannot be aborted; drop stale responses.
                     if (requestSeq.current !== seq) return
@@ -104,7 +115,7 @@ export function SpotlightApp({ config, bridge }: Props) {
         }, SEARCH_DEBOUNCE_MS)
 
         return () => clearTimeout(timeout)
-    }, [query, open])
+    }, [query, open, contextActive])
 
     const navigate = useCallback(
         (url: string, newTab: boolean) => {
@@ -151,6 +162,18 @@ export function SpotlightApp({ config, bridge }: Props) {
         [bridge, navigate, query],
     )
 
+    // Stepping out of the context hides its pinned commands (and their
+    // shortcuts) without refetching — the chip disappears with them.
+    const scopedStatic = useMemo(
+        () => (contextActive ? (staticItems ?? []) : (staticItems ?? []).filter((item) => !item.contextual)),
+        [staticItems, contextActive],
+    )
+
+    const scopedDynamic = useMemo(
+        () => (contextActive ? dynamicItems : dynamicItems.filter((item) => !item.contextual)),
+        [dynamicItems, contextActive],
+    )
+
     useEffect(() => {
         const onKeyDown = (event: KeyboardEvent) => {
             if (config.keybindings.some((binding) => matchesKeybinding(event, binding))) {
@@ -166,7 +189,7 @@ export function SpotlightApp({ config, bridge }: Props) {
             // shortcuts work Linear-style anywhere on the page, except that
             // unmodified ones never steal keystrokes from a focused field.
             const candidates = open
-                ? [...(staticItems ?? []), ...dynamicItems].filter(
+                ? [...scopedStatic, ...scopedDynamic].filter(
                       (item) => item.keybinding && hasKeybindingModifier(item.keybinding),
                   )
                 : config.keybindingItems.filter(
@@ -186,16 +209,16 @@ export function SpotlightApp({ config, bridge }: Props) {
         document.addEventListener('keydown', onKeyDown)
 
         return () => document.removeEventListener('keydown', onKeyDown)
-    }, [config.keybindings, config.keybindingItems, open, staticItems, dynamicItems, runItem])
+    }, [config.keybindings, config.keybindingItems, open, scopedStatic, scopedDynamic, runItem])
 
     const rankedStatic = useMemo(
-        () => rankStaticItems(staticItems ?? [], query.trim()),
-        [staticItems, query],
+        () => rankStaticItems(scopedStatic, query.trim()),
+        [scopedStatic, query],
     )
 
     const grouped = useMemo(
-        () => groupItems(rankedStatic, dynamicItems, config.groups),
-        [rankedStatic, dynamicItems, config.groups],
+        () => groupItems(rankedStatic, scopedDynamic, config.groups),
+        [rankedStatic, scopedDynamic, config.groups],
     )
 
     const isEmpty =
@@ -215,7 +238,37 @@ export function SpotlightApp({ config, bridge }: Props) {
             overlayClassName="fi-spotlight-overlay"
             contentClassName="fi-spotlight"
         >
-            <Command.Input value={query} onValueChange={setQuery} placeholder={config.placeholder} />
+            {contextActive && context && (
+                <div className="fi-spotlight-context">
+                    <span className="fi-spotlight-context-chip">
+                        {context.badge && (
+                            <span className="fi-spotlight-context-badge">{context.badge}</span>
+                        )}
+
+                        <span className="fi-spotlight-context-label">{context.label}</span>
+
+                        <button
+                            type="button"
+                            aria-label={config.i18n.removeContext}
+                            onClick={() => setContextActive(false)}
+                        >
+                            <BackspaceIcon />
+                        </button>
+                    </span>
+                </div>
+            )}
+
+            <Command.Input
+                value={query}
+                onValueChange={setQuery}
+                placeholder={config.placeholder}
+                onKeyDown={(event) => {
+                    if (event.key === 'Backspace' && query === '' && contextActive && context) {
+                        event.preventDefault()
+                        setContextActive(false)
+                    }
+                }}
+            />
 
             {/* Contextual (current record/page) commands are pinned on top.
                 Static commands render next and server results append below,
@@ -264,6 +317,25 @@ export function SpotlightApp({ config, bridge }: Props) {
                 )}
             </Command.List>
         </Command.Dialog>
+    )
+}
+
+function BackspaceIcon() {
+    return (
+        <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            strokeWidth={1.5}
+            stroke="currentColor"
+            aria-hidden="true"
+        >
+            <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M12 9.75 14.25 12m0 0 2.25 2.25M14.25 12l2.25-2.25M14.25 12 12 14.25m-2.58 4.92-6.374-6.375a1.125 1.125 0 0 1 0-1.59L9.42 4.83c.21-.211.497-.33.795-.33H19.5a2.25 2.25 0 0 1 2.25 2.25v10.5a2.25 2.25 0 0 1-2.25 2.25h-9.284c-.298 0-.585-.119-.795-.33Z"
+            />
+        </svg>
     )
 }
 

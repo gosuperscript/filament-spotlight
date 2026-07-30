@@ -267,8 +267,7 @@ class SpotlightPlugin implements Plugin
     /**
      * Commands scoped to where the user currently is, collected from the
      * page and resource implementing HasContextualSpotlightCommands. They
-     * are pinned to the contextual section and grouped under the record's
-     * title (or the page's label) unless a group is set explicitly.
+     * are pinned to the contextual section, under the context chip.
      *
      * @return array<Commands\Command>
      */
@@ -286,28 +285,21 @@ class SpotlightPlugin implements Plugin
             }
         }
 
-        if ($commands === []) {
-            return [];
-        }
-
-        $label = $this->getContextualGroupLabel($pageContext);
-
         foreach ($commands as $command) {
             $command->contextual();
-
-            if (filled($label) && $command->getGroup() === null) {
-                $command->group($label);
-            }
         }
 
         return $commands;
     }
 
     /**
-     * The heading contextual commands are grouped under: the record's title
-     * where there is one, otherwise the resource's or page's label.
+     * The chip shown above the search input while contextual commands are
+     * offered — "User · Jane Cooper" on a record page, otherwise the
+     * resource's or page's label. Backspace on an empty query dismisses it.
+     *
+     * @return array{badge: string | null, label: string} | null
      */
-    protected function getContextualGroupLabel(PageContext $pageContext): ?string
+    public function getContextChip(PageContext $pageContext): ?array
     {
         if ($pageContext->record !== null && $pageContext->resource !== null) {
             $title = $pageContext->resource::getRecordTitle($pageContext->record);
@@ -317,16 +309,25 @@ class SpotlightPlugin implements Plugin
                 : $title;
 
             if (filled($title)) {
-                return $title;
+                return [
+                    'badge' => str($pageContext->resource::getModelLabel())->ucfirst()->toString(),
+                    'label' => $title,
+                ];
             }
         }
 
         if ($pageContext->resource !== null) {
-            return str($pageContext->resource::getPluralModelLabel())->ucfirst()->toString();
+            return [
+                'badge' => null,
+                'label' => str($pageContext->resource::getPluralModelLabel())->ucfirst()->toString(),
+            ];
         }
 
         if ($pageContext->page !== null) {
-            return $pageContext->page::getNavigationLabel();
+            return [
+                'badge' => null,
+                'label' => $pageContext->page::getNavigationLabel(),
+            ];
         }
 
         return null;

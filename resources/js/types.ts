@@ -22,6 +22,16 @@ export type GroupDefinition = {
     sort: number
 }
 
+export type ContextChip = {
+    badge: string | null
+    label: string
+}
+
+export type StaticCommandsPayload = {
+    context: ContextChip | null
+    commands: CommandItem[]
+}
+
 export type SpotlightConfig = {
     keybindings: string[]
     keybindingItems: CommandItem[]
@@ -31,11 +41,12 @@ export type SpotlightConfig = {
     i18n: {
         empty: string
         loading: string
+        removeContext: string
     }
 }
 
 export type Bridge = {
-    getStaticCommands: (url: string) => Promise<CommandItem[]>
-    search: (query: string, url: string) => Promise<CommandItem[]>
+    getStaticCommands: (url: string) => Promise<StaticCommandsPayload>
+    search: (query: string, url: string | null) => Promise<CommandItem[]>
     execute: (id: string, context: { query: string; url: string }) => Promise<{ redirect?: string } | null>
 }
