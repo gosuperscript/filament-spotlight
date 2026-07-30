@@ -36,9 +36,11 @@ it('returns static command payloads', function () {
         Command::make('ping')->label('Ping')->keywords(['pong'])->action(fn () => null),
     ]);
 
-    $payloads = spotlight()->getStaticCommands();
+    $response = spotlight()->getStaticCommands();
+    $payloads = $response['commands'];
 
-    expect($payloads)->toHaveCount(2); // ping + settings:clear-cache fixture page
+    expect($payloads)->toHaveCount(2) // ping + settings:clear-cache fixture page
+        ->and($response['context'])->toBeNull();
 
     $ping = collect($payloads)->firstWhere('id', 'ping');
 
@@ -55,7 +57,7 @@ it('includes the keybinding in command payloads', function () {
         Command::make('assign')->keybinding('a')->action(fn () => null),
     ]);
 
-    $assign = collect(spotlight()->getStaticCommands())->firstWhere('id', 'assign');
+    $assign = collect(spotlight()->getStaticCommands()['commands'])->firstWhere('id', 'assign');
 
     expect($assign['keybinding'])->toBe('a');
 });
@@ -84,14 +86,14 @@ it('excludes hidden and unauthorized commands from static payloads', function ()
         Command::make('forbidden')->url('/x')->authorize('never'),
     ]);
 
-    $ids = collect(spotlight()->getStaticCommands())->pluck('id');
+    $ids = collect(spotlight()->getStaticCommands()['commands'])->pluck('id');
 
     expect($ids)->not->toContain('concealed')
         ->and($ids)->not->toContain('forbidden');
 });
 
 it('includes navigation commands with urls in static payloads', function () {
-    $payloads = collect(spotlight()->getStaticCommands());
+    $payloads = collect(spotlight()->getStaticCommands()['commands']);
 
     $dashboard = $payloads->first(fn (array $payload): bool => $payload['label'] === 'Dashboard');
 

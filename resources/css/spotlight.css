@@ -37,6 +37,48 @@
         0 0 0 1px rgb(255 255 255 / 0.1);
 }
 
+.fi-spotlight-context {
+    padding: 0.75rem 1rem 0;
+}
+
+.fi-spotlight-context-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    max-width: 100%;
+    border-radius: 0.5rem;
+    background-color: var(--gray-100);
+    padding: 0.25rem 0.625rem;
+    font-size: 0.8125rem;
+    line-height: 1.25rem;
+    color: var(--gray-700);
+}
+
+.dark .fi-spotlight-context-chip {
+    background-color: var(--gray-800);
+    color: var(--gray-200);
+}
+
+.fi-spotlight-context-badge {
+    color: var(--gray-500);
+}
+
+.fi-spotlight-context-badge::after {
+    content: '·';
+    margin-inline-start: 0.375rem;
+    color: var(--gray-400);
+}
+
+.dark .fi-spotlight-context-badge {
+    color: var(--gray-400);
+}
+
+.fi-spotlight-context-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 .fi-spotlight [cmdk-input] {
     width: 100%;
     border: none;

@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Livewire\Livewire;
 use Superscript\FilamentSpotlight\Commands\Command;
@@ -25,42 +26,63 @@ function contextualSpotlight(): Spotlight
     return $component;
 }
 
+/**
+ * @return array{context: array{badge: string | null, label: string} | null, commands: array<array<string, mixed>>}
+ */
+function staticResponse(?string $url = null): array
+{
+    return contextualSpotlight()->getStaticCommands($url);
+}
+
+function staticCommands(?string $url = null): Collection
+{
+    return collect(staticResponse($url)['commands']);
+}
+
 function editUrlFor(User $record): string
 {
     return UserResource::getUrl('edit', ['record' => $record]);
 }
 
-it('offers record commands on a record page, pinned and grouped by record title', function () {
+it('offers record commands on a record page, pinned under a record chip', function () {
     $record = makeUser(['name' => 'Jane Cooper']);
 
-    $payloads = collect(contextualSpotlight()->getStaticCommands(editUrlFor($record)));
+    $response = staticResponse(editUrlFor($record));
 
-    $greet = $payloads->firstWhere('id', "users:{$record->getKey()}:greet");
+    $greet = collect($response['commands'])->firstWhere('id', "users:{$record->getKey()}:greet");
 
-    expect($greet)->not->toBeNull()
+    expect($response['context'])->toBe(['badge' => 'User', 'label' => 'Jane Cooper'])
+        ->and($greet)->not->toBeNull()
         ->and($greet['label'])->toBe('Greet Jane Cooper')
         ->and($greet['contextual'])->toBeTrue()
-        ->and($greet['group'])->toBe('Jane Cooper');
+        ->and($greet['group'])->toBeNull();
 });
 
-it('offers page commands on a resource list page, grouped by the resource label', function () {
-    $payloads = collect(contextualSpotlight()->getStaticCommands('http://localhost/admin/users'));
+it('offers page commands on a resource list page, under the resource chip', function () {
+    $response = staticResponse('http://localhost/admin/users');
 
-    $export = $payloads->firstWhere('id', 'users:export');
+    $export = collect($response['commands'])->firstWhere('id', 'users:export');
 
-    expect($export)->not->toBeNull()
+    expect($response['context'])->toBe(['badge' => null, 'label' => 'Users'])
+        ->and($export)->not->toBeNull()
         ->and($export['contextual'])->toBeTrue()
-        ->and($export['group'])->toBe('Users');
+        ->and($export['group'])->toBeNull();
 });
 
-it('offers page commands on a plain page, grouped by the page label', function () {
-    $payloads = collect(contextualSpotlight()->getStaticCommands('http://localhost/admin/settings'));
+it('offers page commands on a plain page, under the page chip', function () {
+    $response = staticResponse('http://localhost/admin/settings');
 
-    $reset = $payloads->firstWhere('id', 'settings:reset');
+    $reset = collect($response['commands'])->firstWhere('id', 'settings:reset');
 
-    expect($reset)->not->toBeNull()
-        ->and($reset['contextual'])->toBeTrue()
-        ->and($reset['group'])->toBe('Settings');
+    expect($response['context'])->toBe(['badge' => null, 'label' => 'Settings'])
+        ->and($reset)->not->toBeNull()
+        ->and($reset['contextual'])->toBeTrue();
+});
+
+it('sends no chip when the page offers no contextual commands', function () {
+    $response = staticResponse('http://localhost/admin');
+
+    expect($response['context'])->toBeNull();
 });
 
 it('keeps an explicit group on contextual commands while still pinning them', function () {
@@ -74,8 +96,7 @@ it('keeps an explicit group on contextual commands while still pinning them', fu
             ->action(fn () => null),
     ] : []);
 
-    $payloads = collect(contextualSpotlight()->getStaticCommands(editUrlFor($record)));
-    $grouped = $payloads->firstWhere('id', "users:{$record->getKey()}:grouped");
+    $grouped = staticCommands(editUrlFor($record))->firstWhere('id', "users:{$record->getKey()}:grouped");
 
     expect($grouped['group'])->toBe('maintenance')
         ->and($grouped['contextual'])->toBeTrue();
@@ -84,7 +105,7 @@ it('keeps an explicit group on contextual commands while still pinning them', fu
 it('excludes hidden contextual commands from payloads', function () {
     $record = makeUser();
 
-    $ids = collect(contextualSpotlight()->getStaticCommands(editUrlFor($record)))->pluck('id');
+    $ids = staticCommands(editUrlFor($record))->pluck('id');
 
     expect($ids)->toContain("users:{$record->getKey()}:greet")
         ->and($ids)->not->toContain("users:{$record->getKey()}:concealed");
@@ -93,7 +114,7 @@ it('excludes hidden contextual commands from payloads', function () {
 it('only offers contextual commands where they apply', function () {
     $record = makeUser();
 
-    $ids = collect(contextualSpotlight()->getStaticCommands('http://localhost/admin'))->pluck('id');
+    $ids = staticCommands('http://localhost/admin')->pluck('id');
 
     expect($ids)->not->toContain("users:{$record->getKey()}:greet")
         ->and($ids)->not->toContain('users:export')
@@ -103,9 +124,11 @@ it('only offers contextual commands where they apply', function () {
 it('offers no contextual commands for unresolvable urls', function (?string $url) {
     $record = makeUser();
 
-    $ids = collect(contextualSpotlight()->getStaticCommands($url))->pluck('id');
+    $response = staticResponse($url);
+    $ids = collect($response['commands'])->pluck('id');
 
-    expect($ids)->not->toContain("users:{$record->getKey()}:greet")
+    expect($response['context'])->toBeNull()
+        ->and($ids)->not->toContain("users:{$record->getKey()}:greet")
         ->and($ids)->not->toContain('users:export');
 })->with([
     'no url' => [null],
@@ -115,10 +138,12 @@ it('offers no contextual commands for unresolvable urls', function (?string $url
 ]);
 
 it('falls back to page commands when the record cannot be resolved', function () {
-    $ids = collect(contextualSpotlight()->getStaticCommands('http://localhost/admin/users/999999/edit'))->pluck('id');
+    $response = staticResponse('http://localhost/admin/users/999999/edit');
+    $ids = collect($response['commands'])->pluck('id');
 
     expect($ids)->not->toContain('users:999999:greet')
-        ->and($ids)->toContain('users:export');
+        ->and($ids)->toContain('users:export')
+        ->and($response['context'])->toBe(['badge' => null, 'label' => 'Users']);
 });
 
 it('executes a record command re-materialized from the url', function () {
@@ -170,13 +195,11 @@ it('injects the record and page context into plugin command closures', function 
             ->action(fn () => null),
     ] : []);
 
-    $payloads = collect(contextualSpotlight()->getStaticCommands(editUrlFor($record)));
+    $payloads = staticCommands(editUrlFor($record));
 
     expect($payloads->firstWhere('id', 'whereami')['label'])->toBe('On Wade Warren via EditUser');
 
-    $withoutUrl = collect(contextualSpotlight()->getStaticCommands())->pluck('id');
-
-    expect($withoutUrl)->not->toContain('whereami');
+    expect(staticCommands()->pluck('id'))->not->toContain('whereami');
 });
 
 it('passes the url through Livewire calls end to end', function () {
@@ -184,6 +207,6 @@ it('passes the url through Livewire calls end to end', function () {
 
     Livewire::test(Spotlight::class)
         ->call('getStaticCommands', editUrlFor($record))
-        ->assertReturned(fn (array $payloads): bool => collect($payloads)
+        ->assertReturned(fn (array $response): bool => collect($response['commands'])
             ->contains(fn (array $payload): bool => $payload['id'] === "users:{$record->getKey()}:greet"));
 });
