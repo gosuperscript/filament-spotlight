@@ -12,6 +12,15 @@ const options = {
     format: 'iife',
     target: 'es2020',
     jsx: 'automatic',
+    // The bundle is a closed IIFE — nothing React-shaped is exposed to the
+    // host page — so cmdk runs on preact/compat purely as a size
+    // optimization (~64 KB → ~24 KB gzipped).
+    alias: {
+        'react': 'preact/compat',
+        'react-dom/client': 'preact/compat/client',
+        'react-dom': 'preact/compat',
+        'react/jsx-runtime': 'preact/jsx-runtime',
+    },
     define: {
         'process.env.NODE_ENV': '"production"',
     },
