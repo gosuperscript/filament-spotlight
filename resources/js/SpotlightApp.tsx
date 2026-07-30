@@ -1,7 +1,12 @@
 import { Command } from 'cmdk'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
-import { matchesKeybinding } from './keybindings'
+import {
+    formatKeybinding,
+    hasKeybindingModifier,
+    isEditableTarget,
+    matchesKeybinding,
+} from './keybindings'
 import { groupItems, rankStaticItems } from './ranking'
 import type { Bridge, CommandItem, SpotlightConfig } from './types'
 
@@ -23,31 +28,22 @@ export function SpotlightApp({ config, bridge }: Props) {
     const requestSeq = useRef(0)
 
     useEffect(() => {
-        const onKeyDown = (event: KeyboardEvent) => {
-            if (config.keybindings.some((binding) => matchesKeybinding(event, binding))) {
-                event.preventDefault()
-                setOpen((open) => !open)
-            }
-        }
-
         const onOpen = () => setOpen(true)
         const onClose = () => setOpen(false)
         const onToggle = () => setOpen((open) => !open)
 
         // Livewire's PHP-side dispatch() surfaces as browser CustomEvents, so
         // $this->dispatch('filament-spotlight:open') works with no extra glue.
-        document.addEventListener('keydown', onKeyDown)
         window.addEventListener('filament-spotlight:open', onOpen)
         window.addEventListener('filament-spotlight:close', onClose)
         window.addEventListener('filament-spotlight:toggle', onToggle)
 
         return () => {
-            document.removeEventListener('keydown', onKeyDown)
             window.removeEventListener('filament-spotlight:open', onOpen)
             window.removeEventListener('filament-spotlight:close', onClose)
             window.removeEventListener('filament-spotlight:toggle', onToggle)
         }
-    }, [config.keybindings])
+    }, [])
 
     useEffect(() => {
         const onNavigated = () => {
@@ -152,6 +148,43 @@ export function SpotlightApp({ config, bridge }: Props) {
         [bridge, navigate, query],
     )
 
+    useEffect(() => {
+        const onKeyDown = (event: KeyboardEvent) => {
+            if (config.keybindings.some((binding) => matchesKeybinding(event, binding))) {
+                event.preventDefault()
+                setOpen((open) => !open)
+                return
+            }
+
+            if (event.defaultPrevented || event.repeat) return
+
+            // While the menu is open only modifier shortcuts fire — plain
+            // keys belong to the search input. While it is closed, item
+            // shortcuts work Linear-style anywhere on the page, except that
+            // unmodified ones never steal keystrokes from a focused field.
+            const candidates = open
+                ? [...(staticItems ?? []), ...dynamicItems].filter(
+                      (item) => item.keybinding && hasKeybindingModifier(item.keybinding),
+                  )
+                : config.keybindingItems.filter(
+                      (item) =>
+                          item.keybinding &&
+                          (hasKeybindingModifier(item.keybinding) || !isEditableTarget(event.target)),
+                  )
+
+            const item = candidates.find((item) => matchesKeybinding(event, item.keybinding!))
+
+            if (item) {
+                event.preventDefault()
+                void runItem(item)
+            }
+        }
+
+        document.addEventListener('keydown', onKeyDown)
+
+        return () => document.removeEventListener('keydown', onKeyDown)
+    }, [config.keybindings, config.keybindingItems, open, staticItems, dynamicItems, runItem])
+
     const rankedStatic = useMemo(
         () => rankStaticItems(staticItems ?? [], query.trim()),
         [staticItems, query],
@@ -232,6 +265,14 @@ function Item({ item, onSelect }: { item: CommandItem; onSelect: () => void }) {
                     <span className="fi-spotlight-item-description">{item.description}</span>
                 )}
             </span>
+
+            {item.keybinding && (
+                <span className="fi-spotlight-item-keybinding" aria-hidden="true">
+                    {formatKeybinding(item.keybinding).map((key, index) => (
+                        <kbd key={index}>{key}</kbd>
+                    ))}
+                </span>
+            )}
         </Command.Item>
     )
 }

@@ -6,11 +6,3 @@ parameters:
     paths:
         - src
     tmpDir: build/phpstan
-    ignoreErrors:
-        # False positive: the 'filament-spotlight::' view namespace is
-        # registered at runtime by the package service provider, which
-        # larastan cannot see outside a full Laravel app.
-        -
-            identifier: argument.type
-            message: '#expects view-string#'
-            path: src/Livewire/Spotlight.php

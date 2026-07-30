@@ -33,6 +33,12 @@ it('accepts a command group instance for its group', function () {
     expect(Command::make('x')->group($group)->getGroup())->toBe('maintenance');
 });
 
+it('has no keybinding by default and accepts one as a string or closure', function () {
+    expect(Command::make('plain')->getKeybinding())->toBeNull()
+        ->and(Command::make('assign')->keybinding('a')->getKeybinding())->toBe('a')
+        ->and(Command::make('move')->keybinding(fn (): string => 'mod+shift+m')->getKeybinding())->toBe('mod+shift+m');
+});
+
 it('is hidden via hidden() or visible(false)', function () {
     expect(Command::make('a')->url('/x')->isVisible())->toBeTrue()
         ->and(Command::make('b')->url('/x')->hidden()->isVisible())->toBeFalse()

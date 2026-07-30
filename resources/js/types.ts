@@ -6,6 +6,7 @@ export type CommandItem = {
     icon: string | null
     group: string | null
     keywords: string[]
+    keybinding: string | null
     sort: number
     url: string | null
     openInNewTab: boolean
@@ -22,6 +23,7 @@ export type GroupDefinition = {
 
 export type SpotlightConfig = {
     keybindings: string[]
+    keybindingItems: CommandItem[]
     placeholder: string
     spaEnabled: boolean
     groups: GroupDefinition[]
