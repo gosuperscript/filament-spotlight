@@ -78,6 +78,7 @@ class AdminPanelProvider extends PanelProvider
                         Command::make('invite-teammate')
                             ->label('Invite a teammate')
                             ->icon(Heroicon::OutlinedUserPlus)
+                            ->keybinding('i')
                             ->url('#'),
                         Command::make('documentation')
                             ->label('Documentation')
@@ -87,6 +88,7 @@ class AdminPanelProvider extends PanelProvider
                             ->label('Clear cache')
                             ->icon(Heroicon::OutlinedArrowPath)
                             ->keywords(['flush', 'artisan'])
+                            ->keybinding('mod+shift+x')
                             ->group('maintenance')
                             ->action(function (): void {
                                 Notification::make()->title('Cache cleared')->success()->send();

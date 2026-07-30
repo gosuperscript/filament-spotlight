@@ -8,6 +8,7 @@ use Filament\Facades\Filament;
 use Filament\Panel;
 use Illuminate\Contracts\View\View;
 use Livewire\Attributes\Locked;
+use Livewire\Attributes\Renderless;
 use Livewire\Component;
 use Superscript\FilamentSpotlight\Commands\Command;
 use Superscript\FilamentSpotlight\Commands\CommandGroup;
@@ -37,6 +38,7 @@ class Spotlight extends Component
      *
      * @return array<array<string, mixed>>
      */
+    #[Renderless]
     public function getStaticCommands(): array
     {
         $panel = $this->getPanel();
@@ -51,6 +53,7 @@ class Spotlight extends Component
      *
      * @return array<array<string, mixed>>
      */
+    #[Renderless]
     public function search(string $query): array
     {
         $panel = $this->getPanel();
@@ -79,6 +82,7 @@ class Spotlight extends Component
      *                                         'query' key is used, to re-materialize provider commands.
      * @return array{redirect: string} | null
      */
+    #[Renderless]
     public function execute(string $id, array $context = []): ?array
     {
         $panel = $this->getPanel();
@@ -144,6 +148,7 @@ class Spotlight extends Component
 
         return [
             'keybindings' => $plugin->getKeybindings(),
+            'keybindingItems' => $this->getKeybindingItems($plugin, $panel),
             'placeholder' => $plugin->getPlaceholder(),
             'spaEnabled' => $panel->hasSpaMode(),
             'groups' => $groups,
@@ -152,6 +157,30 @@ class Spotlight extends Component
                 'loading' => __('filament-spotlight::spotlight.loading'),
             ],
         ];
+    }
+
+    /**
+     * Full payloads for keybound commands, shipped with the page so their
+     * shortcuts work before the menu has ever been opened. Filtering on the
+     * keybinding first keeps visibility/authorization closures (which may hit
+     * gates or the database) off the render path for everything else —
+     * execute() re-checks them anyway.
+     *
+     * @return array<array<string, mixed>>
+     */
+    protected function getKeybindingItems(SpotlightPlugin $plugin, Panel $panel): array
+    {
+        $commands = array_filter(
+            $plugin->buildContributedRegistry($panel)->all(),
+            fn (Command $command): bool => $command->getKeybinding() !== null,
+        );
+
+        $commands = array_filter(
+            $commands,
+            fn (Command $command): bool => $command->isVisible() && $command->isAuthorized(),
+        );
+
+        return array_map(CommandPayload::fromCommand(...), array_values($commands));
     }
 
     protected function getPanel(): Panel

@@ -11,6 +11,7 @@ A ⌘K command menu for [Filament 5](https://filamentphp.com) panels — search 
 - **Navigation index**: every page and resource in your panel is instantly searchable, respecting visibility and authorization.
 - **Global search**: records from your resources' [global search](https://filamentphp.com/docs/panels/resources/global-search) appear while you type.
 - **Custom commands**: register actions with a fluent API — navigate to URLs, dispatch Livewire events, or run server-side closures.
+- **Keybindings**: Linear-style per-command shortcuts, shown on the item and working panel-wide — even before the menu is opened.
 - **Hookable**: pages, resources, plugins, and packages can all contribute commands.
 
 <picture>
@@ -104,6 +105,24 @@ Almost every method accepts a closure, evaluated lazily on the server with Filam
 ```php
 SpotlightPlugin::get()->commands([...]);
 ```
+
+### Keybindings
+
+Give a command a Linear-style keyboard shortcut:
+
+```php
+Command::make('assign')
+    ->label('Assign to…')
+    ->keybinding('a')             // single key, or a chord like 'mod+shift+m'
+    ->action(...),
+```
+
+The shortcut renders as chips on the item (<kbd>⌘</kbd> <kbd>⇧</kbd> <kbd>M</kbd> on macOS, <kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>M</kbd> elsewhere) and runs the command directly:
+
+- **While the menu is closed**, shortcuts work anywhere in the panel. Shortcuts without a modifier (like `a`) are suppressed while a text field is focused, so they never steal keystrokes.
+- **While the menu is open**, shortcuts with a modifier still fire; plain keys type into the search input instead.
+
+Keybound commands ship with the page, so shortcuts work before the menu has ever been opened — visibility and authorization are still enforced server-side when the command executes. Dynamic (provider) commands can display a keybinding too, but it only fires while they are listed in the open menu.
 
 ### Visibility & authorization
 

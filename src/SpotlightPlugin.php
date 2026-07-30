@@ -215,6 +215,23 @@ class SpotlightPlugin implements Plugin
      */
     public function buildStaticRegistry(Panel $panel): CommandRegistry
     {
+        $registry = $this->buildContributedRegistry($panel);
+
+        if ($this->hasNavigation()) {
+            $registry->add(...app(NavigationCommandProvider::class)->commands($panel));
+        }
+
+        return $registry;
+    }
+
+    /**
+     * Only the commands contributed in code — plugin-registered plus pages
+     * and resources implementing HasSpotlightCommands — without the generated
+     * navigation index. Keybinding lookups use this on page render, where
+     * building the navigation would be wasted work.
+     */
+    public function buildContributedRegistry(Panel $panel): CommandRegistry
+    {
         $registry = new CommandRegistry;
 
         $user = Filament::auth()->user();
@@ -233,10 +250,6 @@ class SpotlightPlugin implements Plugin
             if (is_a($component, HasSpotlightCommands::class, true)) {
                 $registry->add(...$component::getSpotlightCommands());
             }
-        }
-
-        if ($this->hasNavigation()) {
-            $registry->add(...app(NavigationCommandProvider::class)->commands($panel));
         }
 
         return $registry;

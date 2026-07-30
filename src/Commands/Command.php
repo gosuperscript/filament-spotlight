@@ -16,6 +16,7 @@ class Command extends Component
     use Concerns\HasAction;
     use Concerns\HasGroup;
     use Concerns\HasIcon;
+    use Concerns\HasKeybinding;
     use Concerns\HasKeywords;
     use Concerns\HasLabel;
     use Concerns\HasSort;

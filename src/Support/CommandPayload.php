@@ -27,6 +27,7 @@ final class CommandPayload
             'icon' => $command->getIconHtml(),
             'group' => $command->getGroup(),
             'keywords' => $command->getKeywords(),
+            'keybinding' => $command->getKeybinding(),
             'sort' => $command->getSort(),
             'url' => $type === Command::TYPE_URL ? $command->getUrl() : null,
             'openInNewTab' => $type === Command::TYPE_URL && $command->shouldOpenUrlInNewTab(),

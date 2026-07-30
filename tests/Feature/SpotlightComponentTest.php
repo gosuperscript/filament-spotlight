@@ -50,6 +50,32 @@ it('returns static command payloads', function () {
         ]);
 });
 
+it('includes the keybinding in command payloads', function () {
+    SpotlightPlugin::get()->navigation(false)->commands([
+        Command::make('assign')->keybinding('a')->action(fn () => null),
+    ]);
+
+    $assign = collect(spotlight()->getStaticCommands())->firstWhere('id', 'assign');
+
+    expect($assign['keybinding'])->toBe('a');
+});
+
+it('ships only visible and authorized keybound commands with the client config', function () {
+    Gate::define('never', fn (User $user): bool => false);
+
+    SpotlightPlugin::get()->commands([
+        Command::make('assign')->keybinding('a')->action(fn () => null),
+        Command::make('plain')->action(fn () => null),
+        Command::make('concealed')->keybinding('c')->hidden()->action(fn () => null),
+        Command::make('forbidden')->keybinding('f')->authorize('never')->action(fn () => null),
+    ]);
+
+    Livewire::test(Spotlight::class)->assertViewHas(
+        'config',
+        fn (array $config): bool => collect($config['keybindingItems'])->pluck('id')->all() === ['assign'],
+    );
+});
+
 it('excludes hidden and unauthorized commands from static payloads', function () {
     Gate::define('never', fn (User $user): bool => false);
 
