@@ -21,6 +21,8 @@ export type RenderGroup = {
 }
 
 export type GroupedItems = {
+    contextualUngrouped: CommandItem[]
+    contextualGroups: RenderGroup[]
     ungrouped: CommandItem[]
     groups: RenderGroup[]
     dynamicUngrouped: CommandItem[]
@@ -28,12 +30,14 @@ export type GroupedItems = {
 }
 
 /**
- * Group static and dynamic items for rendering. Static items always come
- * first (ungrouped, then registered groups by sort, then remaining groups in
- * first-seen order); dynamic (server) results render below them so arriving
- * responses never push the static commands around. A dynamic item whose group
- * already exists statically merges into it to avoid duplicate headings.
- * Duplicate IDs keep their first (static) occurrence.
+ * Group static and dynamic items for rendering. Contextual items (commands
+ * for the record/page the user is on) are pinned above everything else.
+ * Below them, static items always come first (ungrouped, then registered
+ * groups by sort, then remaining groups in first-seen order); dynamic
+ * (server) results render below them so arriving responses never push the
+ * static commands around. A dynamic item whose group already exists
+ * statically merges into it to avoid duplicate headings. Duplicate IDs keep
+ * their first (static) occurrence.
  */
 export function groupItems(
     staticItems: CommandItem[],
@@ -41,8 +45,10 @@ export function groupItems(
     definitions: GroupDefinition[],
 ): GroupedItems {
     const seen = new Set<string>()
+    const contextualUngrouped: CommandItem[] = []
     const ungrouped: CommandItem[] = []
     const dynamicUngrouped: CommandItem[] = []
+    const contextualGroups = new Map<string, CommandItem[]>()
     const staticGroups = new Map<string, CommandItem[]>()
     const dynamicGroups = new Map<string, CommandItem[]>()
 
@@ -56,14 +62,20 @@ export function groupItems(
         if (seen.has(item.id)) continue
         seen.add(item.id)
 
-        item.group ? push(staticGroups, item.group, item) : ungrouped.push(item)
+        if (item.contextual) {
+            item.group ? push(contextualGroups, item.group, item) : contextualUngrouped.push(item)
+        } else {
+            item.group ? push(staticGroups, item.group, item) : ungrouped.push(item)
+        }
     }
 
     for (const item of dynamicItems) {
         if (seen.has(item.id)) continue
         seen.add(item.id)
 
-        if (!item.group) {
+        if (item.contextual) {
+            item.group ? push(contextualGroups, item.group, item) : contextualUngrouped.push(item)
+        } else if (!item.group) {
             dynamicUngrouped.push(item)
         } else if (staticGroups.has(item.group)) {
             push(staticGroups, item.group, item)
@@ -82,6 +94,8 @@ export function groupItems(
             }))
 
     return {
+        contextualUngrouped,
+        contextualGroups: toRenderGroups(contextualGroups),
         ungrouped,
         groups: toRenderGroups(staticGroups),
         dynamicUngrouped,

@@ -13,7 +13,7 @@ it('has sensible defaults', function () {
     expect($plugin->getKeybindings())->toBe(['mod+k'])
         ->and($plugin->hasNavigation())->toBeTrue()
         ->and($plugin->hasGlobalSearch())->toBeTrue()
-        ->and($plugin->getPlaceholder())->toBe('Search or run a command…')
+        ->and($plugin->getPlaceholder())->toBe('Type a command or search…')
         ->and($plugin->getGroups())->toBe([]);
 });
 

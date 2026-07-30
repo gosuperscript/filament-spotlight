@@ -34,6 +34,7 @@ final class CommandPayload
             'event' => $type === Command::TYPE_DISPATCH ? $command->getDispatchEvent() : null,
             'eventArgs' => $type === Command::TYPE_DISPATCH ? $command->getDispatchArgs() : [],
             'context' => $command->getContext(),
+            'contextual' => $command->isContextual(),
         ];
     }
 }

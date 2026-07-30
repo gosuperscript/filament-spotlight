@@ -13,6 +13,7 @@ export type CommandItem = {
     event: string | null
     eventArgs: unknown[]
     context: Record<string, unknown>
+    contextual: boolean
 }
 
 export type GroupDefinition = {
@@ -34,7 +35,7 @@ export type SpotlightConfig = {
 }
 
 export type Bridge = {
-    getStaticCommands: () => Promise<CommandItem[]>
-    search: (query: string) => Promise<CommandItem[]>
-    execute: (id: string, context: Record<string, unknown>) => Promise<{ redirect?: string } | null>
+    getStaticCommands: (url: string) => Promise<CommandItem[]>
+    search: (query: string, url: string) => Promise<CommandItem[]>
+    execute: (id: string, context: { query: string; url: string }) => Promise<{ redirect?: string } | null>
 }

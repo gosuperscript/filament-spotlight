@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 return [
-    'placeholder' => 'Search or run a command…',
+    'placeholder' => 'Type a command or search…',
     'empty' => 'No results found.',
     'loading' => 'Searching…',
     'groups' => [

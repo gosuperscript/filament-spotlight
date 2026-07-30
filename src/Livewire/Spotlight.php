@@ -12,9 +12,11 @@ use Livewire\Attributes\Renderless;
 use Livewire\Component;
 use Superscript\FilamentSpotlight\Commands\Command;
 use Superscript\FilamentSpotlight\Commands\CommandGroup;
+use Superscript\FilamentSpotlight\PageContext;
 use Superscript\FilamentSpotlight\SearchContext;
 use Superscript\FilamentSpotlight\SpotlightPlugin;
 use Superscript\FilamentSpotlight\Support\CommandPayload;
+use Superscript\FilamentSpotlight\Support\PageContextResolver;
 
 /**
  * Deliberately stateless: no command definitions or results are kept in
@@ -33,17 +35,19 @@ class Spotlight extends Component
     }
 
     /**
-     * The full static command index for the current user, fetched once when
-     * the menu first opens and filtered client-side.
+     * The full static command index for the current user, fetched when the
+     * menu first opens on a page and filtered client-side. The URL is where
+     * the client says it is — used to offer page/record commands, while
+     * execution always re-checks visibility and authorization.
      *
      * @return array<array<string, mixed>>
      */
     #[Renderless]
-    public function getStaticCommands(): array
+    public function getStaticCommands(?string $url = null): array
     {
         $panel = $this->getPanel();
 
-        $registry = $this->getPlugin()->buildStaticRegistry($panel);
+        $registry = $this->getPlugin()->buildStaticRegistry($panel, $this->resolvePageContext($url, $panel));
 
         return array_map(CommandPayload::fromCommand(...), $registry->visible());
     }
@@ -54,11 +58,11 @@ class Spotlight extends Component
      * @return array<array<string, mixed>>
      */
     #[Renderless]
-    public function search(string $query): array
+    public function search(string $query, ?string $url = null): array
     {
         $panel = $this->getPanel();
 
-        $context = new SearchContext(trim($query), $panel, Filament::auth()->user());
+        $context = new SearchContext(trim($query), $panel, Filament::auth()->user(), $this->resolvePageContext($url, $panel));
 
         $payloads = [];
 
@@ -78,8 +82,8 @@ class Spotlight extends Component
      * authorization are re-checked here — hiding a command client-side is
      * presentation only, this is the enforcement point.
      *
-     * @param  array<string, mixed>  $context  Untrusted client echo; only its
-     *                                         'query' key is used, to re-materialize provider commands.
+     * @param  array<string, mixed>  $context  Untrusted client echo; 'query' re-materializes
+     *                                         provider commands, 'url' re-materializes page/record commands.
      * @return array{redirect: string} | null
      */
     #[Renderless]
@@ -88,8 +92,11 @@ class Spotlight extends Component
         $panel = $this->getPanel();
         $plugin = $this->getPlugin();
 
-        $command = $plugin->buildStaticRegistry($panel)->find($id)
-            ?? $this->findProviderCommand($plugin, $panel, $id, (string) ($context['query'] ?? ''));
+        $url = $context['url'] ?? null;
+        $pageContext = $this->resolvePageContext(is_string($url) ? $url : null, $panel);
+
+        $command = $plugin->buildStaticRegistry($panel, $pageContext)->find($id)
+            ?? $this->findProviderCommand($plugin, $panel, $id, (string) ($context['query'] ?? ''), $pageContext);
 
         abort_if($command === null, 404);
         abort_unless($command->isVisible() && $command->isAuthorized(), 403);
@@ -116,9 +123,9 @@ class Spotlight extends Component
         ]);
     }
 
-    protected function findProviderCommand(SpotlightPlugin $plugin, Panel $panel, string $id, string $query): ?Command
+    protected function findProviderCommand(SpotlightPlugin $plugin, Panel $panel, string $id, string $query, ?PageContext $pageContext = null): ?Command
     {
-        $context = new SearchContext($query, $panel, Filament::auth()->user());
+        $context = new SearchContext($query, $panel, Filament::auth()->user(), $pageContext);
 
         foreach ($plugin->getCommandProviders() as $provider) {
             foreach ($provider->search($context) as $command) {
@@ -181,6 +188,11 @@ class Spotlight extends Component
         );
 
         return array_map(CommandPayload::fromCommand(...), array_values($commands));
+    }
+
+    protected function resolvePageContext(?string $url, Panel $panel): ?PageContext
+    {
+        return app(PageContextResolver::class)->resolve($url, $panel);
     }
 
     protected function getPanel(): Panel

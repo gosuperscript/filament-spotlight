@@ -107,6 +107,18 @@ async function capture(browser, colorScheme) {
     await page.waitForTimeout(500)
     await screenshotMenu(page, `${OUT}/spotlight-search-${colorScheme}.png`)
 
+    // Contextual commands: open the menu on Jane Cooper's edit page (the
+    // seeder creates her right after the demo user, so she has ID 2).
+    await page.goto('/admin/users/2/edit')
+    await page.waitForFunction(() => window.FilamentSpotlight !== undefined)
+    await page.evaluate(() => document.fonts.ready)
+    await page.addStyleTag({ content: '.fi-spotlight-overlay { backdrop-filter: blur(8px); }' })
+
+    await page.evaluate(() => window.FilamentSpotlight.open())
+    await page.locator('.fi-spotlight [cmdk-item]', { hasText: 'Impersonate' }).waitFor()
+    await page.waitForTimeout(500)
+    await screenshotMenu(page, `${OUT}/spotlight-context-${colorScheme}.png`)
+
     await context.close()
 }
 
