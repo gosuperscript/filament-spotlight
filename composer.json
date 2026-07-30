@@ -1,5 +1,5 @@
 {
-    "name": "superscript/filament-spotlight",
+    "name": "gosuperscript/filament-spotlight",
     "description": "A Cmd+K command menu for Filament panels: search and quick actions with a fluent, hookable API.",
     "keywords": [
         "laravel",

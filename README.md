@@ -31,7 +31,7 @@ The UI ships as a self-contained React island (react + cmdk bundled, ~28 KB gzip
 ## Installation
 
 ```bash
-composer require superscript/filament-spotlight
+composer require gosuperscript/filament-spotlight
 php artisan filament:assets
 ```
 

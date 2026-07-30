@@ -31,7 +31,7 @@ class SpotlightServiceProvider extends PackageServiceProvider
         FilamentAsset::register([
             Js::make('spotlight', __DIR__.'/../dist/spotlight.js'),
             Css::make('spotlight', __DIR__.'/../dist/spotlight.css'),
-        ], package: 'superscript/filament-spotlight');
+        ], package: 'gosuperscript/filament-spotlight');
 
         Livewire::component('filament-spotlight', Spotlight::class);
     }
