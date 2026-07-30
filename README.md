@@ -11,6 +11,7 @@ A ⌘K command menu for [Filament 5](https://filamentphp.com) panels — search 
 - **Navigation index**: every page and resource in your panel is instantly searchable, respecting visibility and authorization.
 - **Global search**: records from your resources' [global search](https://filamentphp.com/docs/panels/resources/global-search) appear while you type.
 - **Custom commands**: register actions with a fluent API — navigate to URLs, dispatch Livewire events, or run server-side closures.
+- **Context-aware**: commands for the page — or record — the user is viewing are pinned to the top, Linear-style.
 - **Keybindings**: Linear-style per-command shortcuts, shown on the item and working panel-wide — even before the menu is opened.
 - **Hookable**: pages, resources, plugins, and packages can all contribute commands.
 
@@ -156,6 +157,59 @@ class Settings extends Page implements HasSpotlightCommands
 }
 ```
 
+## Contextual commands
+
+Linear-style context awareness: commands scoped to the page the user is currently on are pinned to the top of the menu. Implement `HasContextualSpotlightCommands` on a page or resource — it is only consulted while the user is there, and receives a `PageContext` with the current `page`, `resource`, and (on record pages) the resolved `record`:
+
+```php
+use Superscript\FilamentSpotlight\Commands\Command;
+use Superscript\FilamentSpotlight\Contracts\HasContextualSpotlightCommands;
+use Superscript\FilamentSpotlight\PageContext;
+
+class UserResource extends Resource implements HasContextualSpotlightCommands
+{
+    public static function getContextualSpotlightCommands(PageContext $context): array
+    {
+        // On /admin/users/3/edit — commands for that user:
+        if ($user = $context->record) {
+            return [
+                Command::make("users:{$user->getKey()}:deactivate")
+                    ->label('Deactivate')
+                    ->icon(Heroicon::OutlinedNoSymbol)
+                    ->authorize('update', $user)
+                    ->action(fn () => $user->deactivate()),
+            ];
+        }
+
+        // On /admin/users — commands for the list page:
+        return [
+            Command::make('users:export')
+                ->label('Export users')
+                ->action(fn () => /* ... */),
+        ];
+    }
+}
+```
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="art/spotlight-context-dark.png">
+  <img alt="The command menu on a record's edit page, with commands for that record pinned to the top under the record's title" src="art/spotlight-context-light.png">
+</picture>
+
+Contextual commands are grouped under the record's title when there is one, otherwise the resource's or page's label; set an explicit `->group()` to override. Any other command can be pinned into the contextual section with `->contextual()`.
+
+The client reports its current URL when the menu opens; the server resolves it through the router. The page must belong to the panel, and records resolve through the resource's scoped Eloquent query, so tenancy and query scoping apply. Like provider commands, contextual command names must be **deterministic** (include the record key): the command is re-materialized from the same URL on execute, and visibility/authorization are re-checked before anything runs — make those checks record-aware where it matters, as in `->authorize('update', $user)` above.
+
+Plugin-registered `commands()` closures can also become context-aware through the injected `$record` and `$pageContext`:
+
+```php
+->commands(fn (?Model $record): array => $record ? [
+    Command::make("copy-id-{$record->getKey()}")
+        ->label('Copy record ID')
+        ->dispatch('copy-to-clipboard', ['text' => $record->getKey()]),
+] : [])
+```
+
 ## Dynamic commands (search providers)
 
 For results that depend on what the user types (recent documents, external APIs, …), implement `CommandProvider`. Providers are queried server-side on every debounced keystroke:
@@ -184,6 +238,8 @@ SpotlightPlugin::make()->providers([DocumentProvider::class]);
 
 > [!IMPORTANT]
 > Provider command names must be **deterministic** (e.g. `documents:{id}`): when a provider command is executed, the provider is re-run with the same query to re-materialize the command by its name, and visibility/authorization are re-checked before anything runs.
+
+Besides `query`, `panel`, and `user`, the `SearchContext` exposes `pageContext` — the resolved current `page`, `resource`, and `record` — so providers can tailor results to where the user is.
 
 ## Configuration
 

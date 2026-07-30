@@ -10,9 +10,11 @@ use Filament\Facades\Filament;
 use Filament\Panel;
 use Filament\Support\Concerns\EvaluatesClosures;
 use Filament\View\PanelsRenderHook;
+use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Support\Facades\Blade;
 use Superscript\FilamentSpotlight\Commands\CommandGroup;
 use Superscript\FilamentSpotlight\Contracts\CommandProvider;
+use Superscript\FilamentSpotlight\Contracts\HasContextualSpotlightCommands;
 use Superscript\FilamentSpotlight\Contracts\HasSpotlightCommands;
 use Superscript\FilamentSpotlight\Providers\GlobalSearchCommandProvider;
 use Superscript\FilamentSpotlight\Providers\NavigationCommandProvider;
@@ -209,13 +211,14 @@ class SpotlightPlugin implements Plugin
 
     /**
      * Build the static command index for a panel: plugin-registered commands,
-     * pages and resources implementing HasSpotlightCommands, and the panel's
-     * navigation. Rebuilt deterministically on every request, so a command ID
-     * is all the client ever needs to hold.
+     * pages and resources implementing HasSpotlightCommands, record commands
+     * for the page the user is on, and the panel's navigation. Rebuilt
+     * deterministically on every request, so a command ID is all the client
+     * ever needs to hold.
      */
-    public function buildStaticRegistry(Panel $panel): CommandRegistry
+    public function buildStaticRegistry(Panel $panel, ?PageContext $pageContext = null): CommandRegistry
     {
-        $registry = $this->buildContributedRegistry($panel);
+        $registry = $this->buildContributedRegistry($panel, $pageContext);
 
         if ($this->hasNavigation()) {
             $registry->add(...app(NavigationCommandProvider::class)->commands($panel));
@@ -225,12 +228,13 @@ class SpotlightPlugin implements Plugin
     }
 
     /**
-     * Only the commands contributed in code — plugin-registered plus pages
-     * and resources implementing HasSpotlightCommands — without the generated
-     * navigation index. Keybinding lookups use this on page render, where
-     * building the navigation would be wasted work.
+     * Only the commands contributed in code — plugin-registered, pages and
+     * resources implementing HasSpotlightCommands, and contextual commands
+     * for the given page context — without the generated navigation index.
+     * Keybinding lookups use this on page render, where building the
+     * navigation would be wasted work.
      */
-    public function buildContributedRegistry(Panel $panel): CommandRegistry
+    public function buildContributedRegistry(Panel $panel, ?PageContext $pageContext = null): CommandRegistry
     {
         $registry = new CommandRegistry;
 
@@ -240,9 +244,12 @@ class SpotlightPlugin implements Plugin
             $registry->add(...$this->evaluate($commands, [
                 'panel' => $panel,
                 'user' => $user,
+                'pageContext' => $pageContext,
+                'record' => $pageContext?->record,
             ], [
                 Panel::class => $panel,
                 ...($user ? [$user::class => $user] : []),
+                ...($pageContext ? [PageContext::class => $pageContext] : []),
             ]));
         }
 
@@ -252,6 +259,76 @@ class SpotlightPlugin implements Plugin
             }
         }
 
+        $registry->add(...$this->buildContextualCommands($pageContext));
+
         return $registry;
+    }
+
+    /**
+     * Commands scoped to where the user currently is, collected from the
+     * page and resource implementing HasContextualSpotlightCommands. They
+     * are pinned to the contextual section and grouped under the record's
+     * title (or the page's label) unless a group is set explicitly.
+     *
+     * @return array<Commands\Command>
+     */
+    protected function buildContextualCommands(?PageContext $pageContext): array
+    {
+        if ($pageContext === null) {
+            return [];
+        }
+
+        $commands = [];
+
+        foreach (array_unique(array_filter([$pageContext->resource, $pageContext->page])) as $source) {
+            if (is_a($source, HasContextualSpotlightCommands::class, true)) {
+                $commands = [...$commands, ...$source::getContextualSpotlightCommands($pageContext)];
+            }
+        }
+
+        if ($commands === []) {
+            return [];
+        }
+
+        $label = $this->getContextualGroupLabel($pageContext);
+
+        foreach ($commands as $command) {
+            $command->contextual();
+
+            if (filled($label) && $command->getGroup() === null) {
+                $command->group($label);
+            }
+        }
+
+        return $commands;
+    }
+
+    /**
+     * The heading contextual commands are grouped under: the record's title
+     * where there is one, otherwise the resource's or page's label.
+     */
+    protected function getContextualGroupLabel(PageContext $pageContext): ?string
+    {
+        if ($pageContext->record !== null && $pageContext->resource !== null) {
+            $title = $pageContext->resource::getRecordTitle($pageContext->record);
+
+            $title = $title instanceof Htmlable
+                ? trim(strip_tags($title->toHtml()))
+                : $title;
+
+            if (filled($title)) {
+                return $title;
+            }
+        }
+
+        if ($pageContext->resource !== null) {
+            return str($pageContext->resource::getPluralModelLabel())->ucfirst()->toString();
+        }
+
+        if ($pageContext->page !== null) {
+            return $pageContext->page::getNavigationLabel();
+        }
+
+        return null;
     }
 }

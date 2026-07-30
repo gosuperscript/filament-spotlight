@@ -13,5 +13,6 @@ readonly class SearchContext
         public string $query,
         public Panel $panel,
         public ?Authenticatable $user,
+        public ?PageContext $pageContext = null,
     ) {}
 }

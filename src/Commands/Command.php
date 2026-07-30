@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Superscript\FilamentSpotlight\Commands;
 
+use Closure;
 use Filament\Facades\Filament;
 use Filament\Panel;
 use Filament\Support\Components\Component;
@@ -34,6 +35,8 @@ class Command extends Component
      * @var array<string, mixed>
      */
     protected array $context = [];
+
+    protected bool|Closure $isContextual = false;
 
     final public function __construct(
         protected string $name,
@@ -76,6 +79,22 @@ class Command extends Component
     public function getContext(): array
     {
         return $this->context;
+    }
+
+    /**
+     * Pin this command to the contextual section at the top of the menu.
+     * Commands from HasRecordSpotlightCommands are flagged automatically.
+     */
+    public function contextual(bool|Closure $condition = true): static
+    {
+        $this->isContextual = $condition;
+
+        return $this;
+    }
+
+    public function isContextual(): bool
+    {
+        return (bool) $this->evaluate($this->isContextual);
     }
 
     public function getType(): string

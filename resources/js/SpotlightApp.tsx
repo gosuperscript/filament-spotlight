@@ -69,7 +69,7 @@ export function SpotlightApp({ config, bridge }: Props) {
         if (staticItems === null || staticStale.current) {
             staticStale.current = false
             bridge
-                .getStaticCommands()
+                .getStaticCommands(window.location.href)
                 .then(setStaticItems)
                 .catch(() => setStaticItems([]))
         }
@@ -91,7 +91,7 @@ export function SpotlightApp({ config, bridge }: Props) {
 
         const timeout = setTimeout(() => {
             bridge
-                .search(trimmed)
+                .search(trimmed, window.location.href)
                 .then((items) => {
                     // Livewire promises cannot be aborted; drop stale responses.
                     if (requestSeq.current !== seq) return
@@ -138,7 +138,10 @@ export function SpotlightApp({ config, bridge }: Props) {
                 return
             }
 
-            const result = await bridge.execute(item.id, { query: query.trim() })
+            const result = await bridge.execute(item.id, {
+                query: query.trim(),
+                url: window.location.href,
+            })
             setOpen(false)
 
             if (result?.redirect) {
@@ -196,6 +199,8 @@ export function SpotlightApp({ config, bridge }: Props) {
     )
 
     const isEmpty =
+        grouped.contextualUngrouped.length === 0 &&
+        grouped.contextualGroups.length === 0 &&
         grouped.ungrouped.length === 0 &&
         grouped.groups.length === 0 &&
         grouped.dynamicUngrouped.length === 0 &&
@@ -212,9 +217,22 @@ export function SpotlightApp({ config, bridge }: Props) {
         >
             <Command.Input value={query} onValueChange={setQuery} placeholder={config.placeholder} />
 
-            {/* Static commands render first and server results append below,
+            {/* Contextual (current record/page) commands are pinned on top.
+                Static commands render next and server results append below,
                 so responses arriving never push the list around. */}
             <Command.List>
+                {grouped.contextualUngrouped.map((item) => (
+                    <Item key={item.id} item={item} onSelect={() => runItem(item)} />
+                ))}
+
+                {grouped.contextualGroups.map((group) => (
+                    <Command.Group key={group.key} heading={group.label}>
+                        {group.items.map((item) => (
+                            <Item key={item.id} item={item} onSelect={() => runItem(item)} />
+                        ))}
+                    </Command.Group>
+                ))}
+
                 {grouped.ungrouped.map((item) => (
                     <Item key={item.id} item={item} onSelect={() => runItem(item)} />
                 ))}
