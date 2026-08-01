@@ -9,6 +9,7 @@ use Filament\Facades\Filament;
 use Filament\Panel;
 use Filament\Support\Components\Component;
 use LogicException;
+use Superscript\FilamentSpotlight\Support\MatchesClosureDependencyTypes;
 
 class Command extends Component
 {
@@ -22,6 +23,7 @@ class Command extends Component
     use Concerns\HasLabel;
     use Concerns\HasSort;
     use Concerns\HasUrl;
+    use MatchesClosureDependencyTypes;
 
     public const TYPE_ACTION = 'action';
 
