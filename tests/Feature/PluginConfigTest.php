@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Filament\GlobalSearch\Providers\DefaultGlobalSearchProvider;
 use Superscript\FilamentSpotlight\Commands\CommandGroup;
 use Superscript\FilamentSpotlight\Providers\GlobalSearchCommandProvider;
 use Superscript\FilamentSpotlight\SpotlightPlugin;
@@ -52,4 +53,19 @@ it('resolves providers and appends the global search provider when enabled', fun
     $plugin->globalSearch(false);
 
     expect($plugin->getCommandProviders())->toHaveCount(1);
+});
+
+it('accepts a global search provider override as an instance or class-string', function () {
+    $plugin = SpotlightPlugin::get()->globalSearch(DefaultGlobalSearchProvider::class);
+
+    expect($plugin->hasGlobalSearch())->toBeTrue()
+        ->and($plugin->getGlobalSearchProviderOverride())->toBeInstanceOf(DefaultGlobalSearchProvider::class);
+
+    $plugin->globalSearch(new DefaultGlobalSearchProvider);
+
+    expect($plugin->getGlobalSearchProviderOverride())->toBeInstanceOf(DefaultGlobalSearchProvider::class);
+
+    $plugin->globalSearch(true);
+
+    expect($plugin->getGlobalSearchProviderOverride())->toBeNull();
 });

@@ -7,6 +7,7 @@ namespace Superscript\FilamentSpotlight;
 use Closure;
 use Filament\Contracts\Plugin;
 use Filament\Facades\Filament;
+use Filament\GlobalSearch\Providers\Contracts\GlobalSearchProvider;
 use Filament\Panel;
 use Filament\Support\Concerns\EvaluatesClosures;
 use Filament\View\PanelsRenderHook;
@@ -34,7 +35,7 @@ class SpotlightPlugin implements Plugin
 
     protected bool|Closure $hasNavigation = true;
 
-    protected bool|Closure $hasGlobalSearch = true;
+    protected bool|string|GlobalSearchProvider|Closure $hasGlobalSearch = true;
 
     /**
      * @var array<array<Commands\Command> | Closure>
@@ -131,8 +132,11 @@ class SpotlightPlugin implements Plugin
 
     /**
      * Include the panel's global search results (records) while searching.
+     * Pass a GlobalSearchProvider (instance or class-string) to search
+     * through it directly — even on a panel whose own global search is
+     * disabled, so the command menu can be the only search surface.
      */
-    public function globalSearch(bool|Closure $condition = true): static
+    public function globalSearch(bool|string|GlobalSearchProvider|Closure $condition = true): static
     {
         $this->hasGlobalSearch = $condition;
 
@@ -142,6 +146,17 @@ class SpotlightPlugin implements Plugin
     public function hasGlobalSearch(): bool
     {
         return (bool) $this->evaluate($this->hasGlobalSearch);
+    }
+
+    public function getGlobalSearchProviderOverride(): ?GlobalSearchProvider
+    {
+        $value = $this->evaluate($this->hasGlobalSearch);
+
+        if (is_string($value)) {
+            $value = app($value);
+        }
+
+        return $value instanceof GlobalSearchProvider ? $value : null;
     }
 
     /**
@@ -203,7 +218,7 @@ class SpotlightPlugin implements Plugin
         );
 
         if ($this->hasGlobalSearch()) {
-            $providers[] = app(GlobalSearchCommandProvider::class);
+            $providers[] = new GlobalSearchCommandProvider($this->getGlobalSearchProviderOverride());
         }
 
         return $providers;

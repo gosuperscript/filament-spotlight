@@ -259,6 +259,16 @@ SpotlightPlugin::make()
     ->globalSearch(false);            // drop record results
 ```
 
+`globalSearch()` also accepts a `GlobalSearchProvider` (instance or class-string) to search through directly — even on a panel whose own global search is disabled, so the command menu can be the only search surface without Filament's topbar field:
+
+```php
+use Filament\GlobalSearch\Providers\DefaultGlobalSearchProvider;
+
+SpotlightPlugin::make()->globalSearch(DefaultGlobalSearchProvider::class);
+```
+
+Record results are grouped under the resource's plural label; register a `CommandGroup` of the same name to control its heading and position.
+
 ## Opening the menu programmatically
 
 From PHP (any Livewire component):
