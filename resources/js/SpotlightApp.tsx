@@ -1,16 +1,18 @@
 import { Command } from 'cmdk'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import {
     formatKeybinding,
     hasKeybindingModifier,
     isEditableTarget,
     matchesKeybinding,
+    splitKeybinding,
 } from './keybindings'
 import { groupItems, rankStaticItems } from './ranking'
 import type { Bridge, CommandItem, ContextChip, SpotlightConfig } from './types'
 
 const SEARCH_DEBOUNCE_MS = 250
+const CHORD_TIMEOUT_MS = 1000
 
 type Props = {
     config: SpotlightConfig
@@ -27,9 +29,13 @@ export function SpotlightApp({ config, bridge }: Props) {
     // Backspace on an empty query steps out of the context, Linear-style;
     // reopening the menu steps back in.
     const [contextActive, setContextActive] = useState(true)
+    const [keybindingItems, setKeybindingItems] = useState<CommandItem[]>(config.keybindingItems)
 
     const staticStale = useRef(false)
     const requestSeq = useRef(0)
+    // First step of a chord binding ('g' of 'g a') waiting for its second key.
+    const chordPrefix = useRef<string | null>(null)
+    const chordTimer = useRef<number | undefined>(undefined)
 
     useEffect(() => {
         const onOpen = () => setOpen(true)
@@ -55,12 +61,18 @@ export function SpotlightApp({ config, bridge }: Props) {
             // Navigation items and badges can differ per page or tenant, so
             // refetch the static index the next time the menu opens.
             staticStale.current = true
+            // Contextual shortcuts follow the page; full page loads remount
+            // with fresh config instead, so this only matters under SPA mode.
+            bridge
+                .getKeybindingCommands(window.location.href)
+                .then(setKeybindingItems)
+                .catch(() => {})
         }
 
         document.addEventListener('livewire:navigated', onNavigated)
 
         return () => document.removeEventListener('livewire:navigated', onNavigated)
-    }, [])
+    }, [bridge])
 
     useEffect(() => {
         if (!open) {
@@ -175,41 +187,90 @@ export function SpotlightApp({ config, bridge }: Props) {
     )
 
     useEffect(() => {
+        const clearChord = () => {
+            chordPrefix.current = null
+            window.clearTimeout(chordTimer.current)
+        }
+
         const onKeyDown = (event: KeyboardEvent) => {
             if (config.keybindings.some((binding) => matchesKeybinding(event, binding))) {
                 event.preventDefault()
+                clearChord()
                 setOpen((open) => !open)
                 return
             }
 
             if (event.defaultPrevented || event.repeat) return
 
-            // While the menu is open only modifier shortcuts fire — plain
-            // keys belong to the search input. While it is closed, item
-            // shortcuts work Linear-style anywhere on the page, except that
-            // unmodified ones never steal keystrokes from a focused field.
+            // While the menu is open only single-step modifier shortcuts fire
+            // — plain keys (and chords) belong to the search input. While it
+            // is closed, item shortcuts work Linear-style anywhere on the
+            // page, except that unmodified ones never steal keystrokes from a
+            // focused field.
             const candidates = open
                 ? [...scopedStatic, ...scopedDynamic].filter(
-                      (item) => item.keybinding && hasKeybindingModifier(item.keybinding),
+                      (item) =>
+                          item.keybinding &&
+                          splitKeybinding(item.keybinding).length === 1 &&
+                          hasKeybindingModifier(item.keybinding),
                   )
-                : config.keybindingItems.filter(
+                : keybindingItems.filter(
                       (item) =>
                           item.keybinding &&
                           (hasKeybindingModifier(item.keybinding) || !isEditableTarget(event.target)),
                   )
 
-            const item = candidates.find((item) => matchesKeybinding(event, item.keybinding!))
+            if (chordPrefix.current !== null) {
+                const prefix = chordPrefix.current
+                clearChord()
 
-            if (item) {
+                const chorded = candidates.find((item) => {
+                    const steps = splitKeybinding(item.keybinding!)
+
+                    return steps.length === 2 && steps[0] === prefix && matchesKeybinding(event, steps[1])
+                })
+
+                if (chorded) {
+                    event.preventDefault()
+                    void runItem(chorded)
+                    return
+                }
+            }
+
+            const single = candidates.find((item) => {
+                const steps = splitKeybinding(item.keybinding!)
+
+                return steps.length === 1 && matchesKeybinding(event, steps[0])
+            })
+
+            if (single) {
                 event.preventDefault()
-                void runItem(item)
+                clearChord()
+                void runItem(single)
+                return
+            }
+
+            // A key that opens one or more chords ('g' of 'g a') arms the
+            // prefix and waits for the second step.
+            const prefix = candidates
+                .map((item) => splitKeybinding(item.keybinding!))
+                .find((steps) => steps.length === 2 && matchesKeybinding(event, steps[0]))?.[0]
+
+            if (prefix !== undefined) {
+                event.preventDefault()
+                chordPrefix.current = prefix
+                window.clearTimeout(chordTimer.current)
+                chordTimer.current = window.setTimeout(clearChord, CHORD_TIMEOUT_MS)
             }
         }
 
         document.addEventListener('keydown', onKeyDown)
 
-        return () => document.removeEventListener('keydown', onKeyDown)
-    }, [config.keybindings, config.keybindingItems, open, scopedStatic, scopedDynamic, runItem])
+        return () => {
+            document.removeEventListener('keydown', onKeyDown)
+            clearChord()
+        }
+    }, [config.keybindings, keybindingItems, open, scopedStatic, scopedDynamic, runItem])
 
     const rankedStatic = useMemo(
         () => rankStaticItems(scopedStatic, query.trim()),
@@ -267,37 +328,37 @@ export function SpotlightApp({ config, bridge }: Props) {
                 so responses arriving never push the list around. */}
             <Command.List>
                 {grouped.contextualUngrouped.map((item) => (
-                    <Item key={item.id} item={item} onSelect={() => runItem(item)} />
+                    <Item key={item.id} item={item} then={config.i18n.then} onSelect={() => runItem(item)} />
                 ))}
 
                 {grouped.contextualGroups.map((group) => (
                     <Command.Group key={group.key} heading={group.label}>
                         {group.items.map((item) => (
-                            <Item key={item.id} item={item} onSelect={() => runItem(item)} />
+                            <Item key={item.id} item={item} then={config.i18n.then} onSelect={() => runItem(item)} />
                         ))}
                     </Command.Group>
                 ))}
 
                 {grouped.ungrouped.map((item) => (
-                    <Item key={item.id} item={item} onSelect={() => runItem(item)} />
+                    <Item key={item.id} item={item} then={config.i18n.then} onSelect={() => runItem(item)} />
                 ))}
 
                 {grouped.groups.map((group) => (
                     <Command.Group key={group.key} heading={group.label}>
                         {group.items.map((item) => (
-                            <Item key={item.id} item={item} onSelect={() => runItem(item)} />
+                            <Item key={item.id} item={item} then={config.i18n.then} onSelect={() => runItem(item)} />
                         ))}
                     </Command.Group>
                 ))}
 
                 {grouped.dynamicUngrouped.map((item) => (
-                    <Item key={item.id} item={item} onSelect={() => runItem(item)} />
+                    <Item key={item.id} item={item} then={config.i18n.then} onSelect={() => runItem(item)} />
                 ))}
 
                 {grouped.dynamicGroups.map((group) => (
                     <Command.Group key={group.key} heading={group.label}>
                         {group.items.map((item) => (
-                            <Item key={item.id} item={item} onSelect={() => runItem(item)} />
+                            <Item key={item.id} item={item} then={config.i18n.then} onSelect={() => runItem(item)} />
                         ))}
                     </Command.Group>
                 ))}
@@ -312,7 +373,7 @@ export function SpotlightApp({ config, bridge }: Props) {
     )
 }
 
-function Item({ item, onSelect }: { item: CommandItem; onSelect: () => void }) {
+function Item({ item, then, onSelect }: { item: CommandItem; then: string; onSelect: () => void }) {
     return (
         <Command.Item value={item.id} onSelect={onSelect}>
             <span
@@ -331,8 +392,15 @@ function Item({ item, onSelect }: { item: CommandItem; onSelect: () => void }) {
 
             {item.keybinding && (
                 <span className="fi-spotlight-item-keybinding" aria-hidden="true">
-                    {formatKeybinding(item.keybinding).map((key, index) => (
-                        <kbd key={index}>{key}</kbd>
+                    {formatKeybinding(item.keybinding).map((step, stepIndex) => (
+                        <Fragment key={stepIndex}>
+                            {stepIndex > 0 && (
+                                <span className="fi-spotlight-item-keybinding-then">{then}</span>
+                            )}
+                            {step.map((key, index) => (
+                                <kbd key={index}>{key}</kbd>
+                            ))}
+                        </Fragment>
                     ))}
                 </span>
             )}

@@ -40,6 +40,7 @@ class UserResource extends Resource implements HasContextualSpotlightCommands
             return [
                 Command::make("users:{$record->getKey()}:greet")
                     ->label("Greet {$record->getAttribute('name')}")
+                    ->keybinding('g g')
                     ->action(fn () => Cache::put('greeted', $record->getKey())),
                 Command::make("users:{$record->getKey()}:concealed")
                     ->label('Concealed')

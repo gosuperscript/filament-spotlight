@@ -6,9 +6,12 @@ namespace Superscript\FilamentSpotlight\Commands;
 
 use Closure;
 use Filament\Support\Components\Component;
+use Superscript\FilamentSpotlight\Support\MatchesClosureDependencyTypes;
 
 class CommandGroup extends Component
 {
+    use MatchesClosureDependencyTypes;
+
     protected string $evaluationIdentifier = 'group';
 
     protected string|Closure|null $label = null;

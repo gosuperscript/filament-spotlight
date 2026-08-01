@@ -4,6 +4,15 @@ const IS_APPLE =
     typeof navigator !== 'undefined' && /Mac|iPhone|iPad|iPod/.test(navigator.platform)
 
 /**
+ * Split a binding into its chord steps: 'g a' is G-then-A, Linear-style.
+ * Most bindings are a single step. Each step is matched with
+ * matchesKeybinding against its own keydown.
+ */
+export function splitKeybinding(binding: string): string[] {
+    return binding.trim().toLowerCase().split(/\s+/)
+}
+
+/**
  * Match a KeyboardEvent against a binding like 'mod+k', where 'mod' means Cmd
  * on macOS and Ctrl elsewhere. Modifiers the binding doesn't name must not be
  * held, so a bare 'a' binding won't also fire on 'mod+a'.
@@ -53,14 +62,13 @@ function matchesKey(event: KeyboardEvent, key: string): boolean {
 
 /**
  * Whether the binding includes a non-shift modifier. Bindings without one
- * (like 'a' or 'shift+p') would collide with typing, so they only fire while
- * no input is focused.
+ * (like 'a', 'shift+p', or the chord 'g a') would collide with typing, so
+ * they only fire while no input is focused.
  */
 export function hasKeybindingModifier(binding: string): boolean {
-    return binding
-        .toLowerCase()
-        .split('+')
-        .some((part) => MODIFIERS.includes(part.trim()) && part.trim() !== 'shift')
+    return splitKeybinding(binding).every((step) =>
+        step.split('+').some((part) => MODIFIERS.includes(part.trim()) && part.trim() !== 'shift'),
+    )
 }
 
 export function isEditableTarget(target: EventTarget | null): boolean {
@@ -114,11 +122,17 @@ const KEY_LABELS: Record<string, string> = {
 }
 
 /**
- * Format a binding as display chips, one per key: 'mod+shift+m' becomes
- * ['⌘', '⇧', 'M'] on macOS and ['Ctrl', 'Shift', 'M'] elsewhere.
+ * Format a binding as display chips grouped per chord step: 'mod+shift+m'
+ * becomes [['⌘', '⇧', 'M']] on macOS and [['Ctrl', 'Shift', 'M']]
+ * elsewhere, while the chord 'g a' becomes [['G'], ['A']] — rendered as
+ * "G then A".
  */
-export function formatKeybinding(binding: string): string[] {
-    const parts = binding
+export function formatKeybinding(binding: string): string[][] {
+    return splitKeybinding(binding).map(formatCombo)
+}
+
+function formatCombo(combo: string): string[] {
+    const parts = combo
         .toLowerCase()
         .split('+')
         .map((part) => part.trim())

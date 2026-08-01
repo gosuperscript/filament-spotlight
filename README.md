@@ -114,16 +114,22 @@ Give a command a Linear-style keyboard shortcut:
 ```php
 Command::make('assign')
     ->label('Assign to…')
-    ->keybinding('a')             // single key, or a chord like 'mod+shift+m'
+    ->keybinding('a')             // single key, or a combo like 'mod+shift+m'
     ->action(...),
+
+Command::make('go-to-inbox')
+    ->label('Go to inbox')
+    ->keybinding('g i')           // a two-step chord: G, then I
+    ->url(...),
 ```
 
-The shortcut renders as chips on the item (<kbd>⌘</kbd> <kbd>⇧</kbd> <kbd>M</kbd> on macOS, <kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>M</kbd> elsewhere) and runs the command directly:
+The shortcut renders as chips on the item (<kbd>⌘</kbd> <kbd>⇧</kbd> <kbd>M</kbd> on macOS, <kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>M</kbd> elsewhere; <kbd>G</kbd> then <kbd>I</kbd> for the chord) and runs the command directly:
 
-- **While the menu is closed**, shortcuts work anywhere in the panel. Shortcuts without a modifier (like `a`) are suppressed while a text field is focused, so they never steal keystrokes.
-- **While the menu is open**, shortcuts with a modifier still fire; plain keys type into the search input instead.
+- **While the menu is closed**, shortcuts work anywhere in the panel. Shortcuts without a modifier (like `a` or `g i`) are suppressed while a text field is focused, so they never steal keystrokes.
+- **While the menu is open**, single-step shortcuts with a modifier still fire; plain keys and chords type into the search input instead.
+- **Chords** are two space-separated steps: the first key arms the chord, and the second must follow within a second. Keep chord steps modifier-free.
 
-Keybound commands ship with the page, so shortcuts work before the menu has ever been opened — visibility and authorization are still enforced server-side when the command executes. Dynamic (provider) commands can display a keybinding too, but it only fires while they are listed in the open menu.
+Keybound commands ship with the page, so shortcuts work before the menu has ever been opened — visibility and authorization are still enforced server-side when the command executes. Contextual commands can be keybound too: their shortcuts only work while the user is on the page (or record) offering them. Dynamic (provider) commands can display a keybinding as well, but it only fires while they are listed in the open menu.
 
 ### Visibility & authorization
 

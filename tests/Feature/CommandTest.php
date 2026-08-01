@@ -5,6 +5,7 @@ declare(strict_types=1);
 use Illuminate\Support\Facades\Gate;
 use Superscript\FilamentSpotlight\Commands\Command;
 use Superscript\FilamentSpotlight\Commands\CommandGroup;
+use Superscript\FilamentSpotlight\Tests\Fixtures\Resources\UserResource;
 use Superscript\FilamentSpotlight\Tests\Fixtures\User;
 
 it('throws when no execution type is defined', function () {
@@ -25,6 +26,15 @@ it('evaluates closures with the command injected by name and type', function () 
     $command = Command::make('self-aware')->label(fn (Command $command): string => $command->getName());
 
     expect($command->getLabel())->toBe('self-aware');
+});
+
+it('evaluates first-class Filament callables whose optional parameters collide with injections', function () {
+    // getIndexUrl(?string $panel = null, ?Model $tenant = null, ...) collides
+    // with the named panel injection (a Panel object) and typed Model
+    // resolution; mismatched injections must fall back to the defaults.
+    $command = Command::make('go-to-users')->url(UserResource::getIndexUrl(...));
+
+    expect($command->getUrl())->toBe(UserResource::getUrl('index'));
 });
 
 it('accepts a command group instance for its group', function () {

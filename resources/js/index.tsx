@@ -33,6 +33,7 @@ function registerAlpineComponent() {
 
             const bridge: Bridge = {
                 getStaticCommands: (url) => this.$wire.getStaticCommands(url),
+                getKeybindingCommands: (url) => this.$wire.getKeybindingCommands(url),
                 search: (query, url) => this.$wire.search(query, url),
                 execute: (id, context) => this.$wire.execute(id, context),
             }
