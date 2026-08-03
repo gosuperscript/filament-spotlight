@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use Filament\Facades\Filament;
+use Filament\GlobalSearch\Providers\DefaultGlobalSearchProvider;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Gate;
 use Livewire\Livewire;
@@ -142,6 +144,30 @@ it('searches custom command providers', function () {
     expect($results)->toHaveCount(1)
         ->and($results[0]['id'])->toBe('documents:report')
         ->and($results[0]['group'])->toBe('documents');
+});
+
+it('groups global search results under the verbatim category name', function () {
+    makeUser(['name' => 'Alice Wonder']);
+
+    $results = spotlight()->search('Alice');
+
+    expect($results)->toHaveCount(1)
+        ->and($results[0]['group'])->toBe('users');
+});
+
+it('searches an explicit global search provider even when the panel has none', function () {
+    makeUser(['name' => 'Alice Wonder']);
+
+    Filament::getCurrentPanel()->globalSearch(false);
+
+    expect(spotlight()->search('Alice'))->toHaveCount(0);
+
+    SpotlightPlugin::get()->globalSearch(DefaultGlobalSearchProvider::class);
+
+    $results = spotlight()->search('Alice');
+
+    expect($results)->toHaveCount(1)
+        ->and($results[0]['label'])->toBe('Alice Wonder');
 });
 
 it('executes an action command and reports side effects', function () {

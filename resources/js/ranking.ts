@@ -20,6 +20,18 @@ export type RenderGroup = {
     items: CommandItem[]
 }
 
+/**
+ * Display fallback for group names without a registered CommandGroup:
+ * 'online-quotes' becomes 'Online Quotes'.
+ */
+function headline(name: string): string {
+    return name
+        .split(/[-_\s]+/)
+        .filter((word) => word !== '')
+        .map((word) => word[0].toUpperCase() + word.slice(1))
+        .join(' ')
+}
+
 export type GroupedItems = {
     contextualUngrouped: CommandItem[]
     contextualGroups: RenderGroup[]
@@ -89,7 +101,7 @@ export function groupItems(
             .filter((key, index, keys) => groups.has(key) && keys.indexOf(key) === index)
             .map((key) => ({
                 key,
-                label: definitions.find((definition) => definition.name === key)?.label ?? key,
+                label: definitions.find((definition) => definition.name === key)?.label ?? headline(key),
                 items: groups.get(key)!,
             }))
 
